@@ -1,10 +1,20 @@
 """Staff management — the rules of AppRepository's staff section, server-side.
 
 * Names are unique ignoring case and spacing.
-* Branch staff work from one branch; Admin works across both.
-* At least one active Admin must always exist.
+* Branch staff and Supervisors work from one branch; Admin and Superuser
+  work across both.
+* At least one active Admin (or Superuser) must always exist, and the last
+  active Superuser -- the only way into the Django admin site -- is protected.
 * Anyone who appears on a record is deactivated, never deleted.
 * You can't deactivate or delete yourself.
+
+Who may manage whom (_check_staff_power):
+* Superuser: anyone.
+* Admin: anyone except a Superuser, and may not make anyone a Superuser.
+* Supervisor: only counter staff (Cashier, Appraiser, Sales Rep) at their own
+  branch, and may only make people counter staff there. Never an Admin, a
+  Superuser or a Supervisor, themselves included. An attempt is refused, not
+  filtered: nobody climbs out of a branch through the staff endpoints.
 """
 
 import re
@@ -14,10 +24,19 @@ from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
-from shop.enums import BranchId, LogAction, LogRecordKind, Role
-from shop.errors import NotFound, Refusal
+from shop.enums import (
+    BOTH_BRANCH_ROLES,
+    COUNTER_ROLES,
+    BranchId,
+    LogAction,
+    LogRecordKind,
+    Role,
+    a_role,
+    needs_branch,
+)
+from shop.errors import Forbidden, NotFound, Refusal
 from shop.ids import claim_user_id
-from shop.services.base import ADMIN_ONLY, Ctx, blank_to_none, change, require_role, write_log
+from shop.services.base import BRANCH_MANAGERS, Ctx, blank_to_none, change, require_role, write_log
 
 from .models import User, name_key
 
@@ -47,12 +66,59 @@ def name_problem(name: str, except_id: str | None = None) -> str | None:
 
 
 def _check_branch_for_role(role: str, branch: str | None) -> None:
-    if role != Role.ADMIN and branch is None:
-        raise Refusal(f"A {Role(role).label} works from one branch — pick it", code="branch_required")
+    if needs_branch(role) and branch is None:
+        raise Refusal(f"{a_role(role, capital=True)} works from one branch — pick it", code="branch_required")
 
 
 def _active_admin_count() -> int:
-    return User.objects.filter(active=True, role=Role.ADMIN).count()
+    """People who oversee both branches: Admins and Superusers."""
+    return User.objects.filter(active=True, role__in=BOTH_BRANCH_ROLES).count()
+
+
+def _active_superuser_count() -> int:
+    return User.objects.filter(active=True, role=Role.SUPERUSER).count()
+
+
+def _check_last_ones(user: User, new_role: str | None, *, leaving: bool, doing: str) -> None:
+    """Refuses leaving the shop without an Admin, or without a Superuser.
+
+    `leaving` is True when the person stops counting (deactivated, deleted);
+    otherwise `new_role` is the role they are moving to.
+    """
+    if not user.active:
+        return
+    still_both = not leaving and new_role in BOTH_BRANCH_ROLES
+    if user.role in BOTH_BRANCH_ROLES and not still_both and _active_admin_count() <= 1:
+        raise Refusal(f"{user.name} is the only active Admin — {doing}", code="last_admin")
+    still_super = not leaving and new_role == Role.SUPERUSER
+    if user.role == Role.SUPERUSER and not still_super and _active_superuser_count() <= 1:
+        raise Refusal(f"{user.name} is the only active Superuser — nobody else could reach the admin site",
+                      code="last_superuser")
+
+
+def _check_staff_power(ctx: Ctx, *, target: User | None = None, new_role: str | None = None,
+                       new_branch: str | None = None) -> None:
+    """May the actor manage this person (and give them this role and branch)?"""
+    require_role(ctx, BRANCH_MANAGERS, "manage staff")
+    actor = ctx.actor
+    if actor.role == Role.SUPERUSER:
+        return
+    if actor.role in BOTH_BRANCH_ROLES:  # an Admin
+        if (target is not None and target.role == Role.SUPERUSER) or new_role == Role.SUPERUSER:
+            raise Forbidden("Only a Superuser can manage a Superuser", code="role")
+        return
+    # A Supervisor: counter staff at their own branch, nothing more.
+    own = actor.home_branch
+    if target is not None and (target.role not in COUNTER_ROLES or target.home_branch != own):
+        if target.role in COUNTER_ROLES:
+            raise Forbidden(f"A Supervisor manages {BranchId(own).label} staff only — {target.name} works at "
+                            f"{BranchId(target.home_branch).label}", code="branch")
+        raise Forbidden(f"A Supervisor manages counter staff only — not {target.attribution}", code="role")
+    if new_role is not None and new_role not in COUNTER_ROLES:
+        raise Forbidden(f"A Supervisor cannot make anyone {a_role(new_role)}", code="role")
+    if new_role is not None and new_branch != own:
+        where = BranchId(new_branch).label if new_branch else "both branches"
+        raise Forbidden(f"A Supervisor adds staff to {BranchId(own).label} only — not {where}", code="branch")
 
 
 def check_pin(pin: str) -> str:
@@ -77,7 +143,7 @@ def activity_count(user_id: str) -> int:
 
 def add_user(ctx: Ctx, *, name: str, role: str, home_branch: str | None = None,
              contact_number: str | None = None, pin: str, user_id: str | None = None) -> User:
-    require_role(ctx, ADMIN_ONLY, "manage staff")
+    _check_staff_power(ctx, new_role=role, new_branch=home_branch if needs_branch(role) else None)
     problem = name_problem(name)
     if problem:
         raise Refusal(problem, code="name_taken" if name.strip() else "name_required")
@@ -87,7 +153,7 @@ def add_user(ctx: Ctx, *, name: str, role: str, home_branch: str | None = None,
         id=claim_user_id(user_id),
         name=name.strip(),
         role=role,
-        home_branch=None if role == Role.ADMIN else home_branch,
+        home_branch=home_branch if needs_branch(role) else None,
         contact_number=blank_to_none(contact_number),
         created_at=ctx.now,
     )
@@ -106,14 +172,17 @@ _UNSET = object()
 
 
 def update_user(ctx: Ctx, user_id: str, *, name=_UNSET, role=_UNSET, home_branch=_UNSET,
-                contact_number=_UNSET) -> list[dict]:
+                contact_number=_UNSET, trusted: bool = False) -> list[dict]:
     """Edits a staff member. Past records keep their id, so they now show the
-    corrected name — the person didn't change, only how they're written."""
-    require_role(ctx, ADMIN_ONLY, "manage staff")
+    corrected name — the person didn't change, only how they're written.
+
+    `trusted` skips the who-may-manage-whom check, and only that: it is for
+    `manage.py set_role`, run by whoever operates the server, which is the way
+    back into the admin site. Every other rule still applies."""
     old = get_user(user_id)
     new_name = old.name if name is _UNSET else (name or "").strip()
     new_role = old.role if role is _UNSET else role
-    if new_role == Role.ADMIN:
+    if not needs_branch(new_role):
         new_branch = None
     else:
         new_branch = old.home_branch if home_branch is _UNSET or home_branch is None else home_branch
@@ -123,9 +192,11 @@ def update_user(ctx: Ctx, user_id: str, *, name=_UNSET, role=_UNSET, home_branch
         problem = name_problem(new_name, except_id=old.id)
         if problem:
             raise Refusal(problem, code="name_taken" if new_name else "name_required")
+    if not trusted:
+        _check_staff_power(ctx, target=old, new_role=new_role, new_branch=new_branch)
     _check_branch_for_role(new_role, new_branch)
-    if old.active and old.role == Role.ADMIN and new_role != Role.ADMIN and _active_admin_count() <= 1:
-        raise Refusal(f"{old.name} is the only active Admin — make someone else Admin first", code="last_admin")
+    if new_role != old.role:
+        _check_last_ones(old, new_role, leaving=False, doing="make someone else Admin first")
 
     changes = []
     if new_name != old.name:
@@ -152,15 +223,14 @@ def update_user(ctx: Ctx, user_id: str, *, name=_UNSET, role=_UNSET, home_branch
 def set_active(ctx: Ctx, user_id: str, active: bool) -> User:
     """Turns a staff member off or back on. A deactivated person can't sign in,
     but every record they made still names them."""
-    require_role(ctx, ADMIN_ONLY, "manage staff")
     user = get_user(user_id)
+    _check_staff_power(ctx, target=user)
     if user.active == active:
         return user  # already so: nothing changes, nothing to log
     if not active:
         if ctx.actor.id == user.id:
             raise Refusal("You can't deactivate yourself — switch to another Admin first", code="self")
-        if user.role == Role.ADMIN and _active_admin_count() <= 1:
-            raise Refusal(f"{user.name} is the only active Admin — the shop needs at least one", code="last_admin")
+        _check_last_ones(user, None, leaving=True, doing="the shop needs at least one")
     user.active = active
     user.save()
     write_log(
@@ -175,8 +245,10 @@ def delete_problem(ctx: Ctx, user: User) -> tuple[str, int] | None:
     """Why `user` can't be deleted outright, with the record count, or None."""
     if ctx.actor.id == user.id:
         return "You can't delete yourself", 0
-    if user.active and user.role == Role.ADMIN and _active_admin_count() <= 1:
+    if user.active and user.role in BOTH_BRANCH_ROLES and _active_admin_count() <= 1:
         return f"{user.name} is the only active Admin", 0
+    if user.active and user.role == Role.SUPERUSER and _active_superuser_count() <= 1:
+        return f"{user.name} is the only active Superuser", 0
     count = activity_count(user.id)
     if count > 0:
         return (f"{user.name} appears on {count} record(s). Deactivate them instead, "
@@ -186,8 +258,8 @@ def delete_problem(ctx: Ctx, user: User) -> tuple[str, int] | None:
 
 def delete_user(ctx: Ctx, user_id: str) -> None:
     """Removes someone added by mistake who never did anything."""
-    require_role(ctx, ADMIN_ONLY, "manage staff")
     user = get_user(user_id)
+    _check_staff_power(ctx, target=user)
     problem = delete_problem(ctx, user)
     if problem:
         message, count = problem
@@ -199,9 +271,10 @@ def delete_user(ctx: Ctx, user_id: str) -> None:
 
 
 def set_pin(ctx: Ctx, user_id: str, pin: str) -> User:
-    """Admin sets or resets someone's PIN. Signs them out everywhere."""
-    require_role(ctx, ADMIN_ONLY, "set someone else's PIN")
+    """Sets or resets someone's PIN (an Admin, or a Supervisor for their own
+    branch's counter staff). Signs them out everywhere."""
     user = get_user(user_id)
+    _check_staff_power(ctx, target=user)
     check_pin(pin)
     had_pin = user.has_pin
     user.set_password(pin)

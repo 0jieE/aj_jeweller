@@ -18,7 +18,7 @@ from ..errors import NotFound, Refusal
 from ..ids import claim
 from ..models import Item
 from ..text import fixed3, grams, karat_text, peso
-from .base import ADMIN_ONLY, ENCODE_PURCHASES, Ctx, change, require_branch, require_role, write_log
+from .base import BRANCH_MANAGERS, ENCODE_PURCHASES, Ctx, change, require_branch, require_role, write_log
 from .purchases import check_figures, check_purity, post_verification_status
 
 ZERO = Decimal("0")
@@ -85,13 +85,14 @@ def can_edit(item: Item) -> bool:
 
 def correct(ctx: Ctx, item_id: str, *, description=_UNSET, type=_UNSET, karat=_UNSET, weight_grams=_UNSET,
             gross_weight_grams=_UNSET, amount_centavos=_UNSET) -> tuple[Item, list[dict], str]:
-    """Admin correction of an item's recorded details.
+    """Admin (or the branch's Supervisor) correction of an item's recorded details.
 
     Returns (item, changes, cash_note). `changes` is empty — and nothing is
     written — when nothing changed.
     """
-    require_role(ctx, ADMIN_ONLY, "correct records")
+    require_role(ctx, BRANCH_MANAGERS, "correct records")
     old = get_item(item_id, lock=True)
+    require_branch(ctx, old.branch_id)  # a Supervisor corrects their own branch's records
     if not can_edit(old):
         raise Refusal(f"A {ItemStatus(old.item_status).label.lower()} item can no longer be edited",
                       code="item_locked")
@@ -284,11 +285,12 @@ def create_partition(ctx: Ctx, parent_id: str, *, description: str, type: str, g
 
 
 def delete_partition(ctx: Ctx, partition_id: str) -> Item:
-    """Admin: removes a partition drawn by mistake and returns its grams and
+    """Admin or the branch's Supervisor: removes a partition drawn by mistake and returns its grams and
     amount to the lot — the exact inverse of create_partition. Moves no cash:
     the lot was paid for once, at release. Returns the restored lot."""
-    require_role(ctx, ADMIN_ONLY, "return a partition to its lot")
+    require_role(ctx, BRANCH_MANAGERS, "return a partition to its lot")
     child = get_item(partition_id, lock=True)
+    require_branch(ctx, child.branch_id)
     if child.parent_lot_id is None:
         raise Refusal("Only a partition can be returned to a parent lot", code="not_a_partition")
     if not child.can_return_to_parent:

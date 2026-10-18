@@ -15,7 +15,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from shop.enums import BranchId, Role, choices_check
+from shop.enums import BOTH_BRANCH_ROLES, BranchId, Role, choices_check
 
 
 def name_key(name: str) -> str:
@@ -66,10 +66,11 @@ class User(AbstractBaseUser):
                 condition=Q(home_branch__isnull=True) | choices_check("home_branch", BranchId),
                 name="user_home_branch_valid",
             ),
-            # Admin works across both branches; everyone else works from one.
+            # Admin and Superuser work across both branches; everyone else
+            # (Supervisor included) works from one.
             models.CheckConstraint(
-                condition=(Q(role=Role.ADMIN, home_branch__isnull=True)
-                           | (~Q(role=Role.ADMIN) & Q(home_branch__isnull=False))),
+                condition=(Q(role__in=sorted(BOTH_BRANCH_ROLES), home_branch__isnull=True)
+                           | (~Q(role__in=sorted(BOTH_BRANCH_ROLES)) & Q(home_branch__isnull=False))),
                 name="user_branch_matches_role",
             ),
         ]
@@ -86,18 +87,22 @@ class User(AbstractBaseUser):
 
     @property
     def is_admin(self) -> bool:
-        return self.role == Role.ADMIN
+        """Oversees both branches (an Admin, or a Superuser)."""
+        return self.role in BOTH_BRANCH_ROLES
 
     # --- what Django's admin site asks of a user ------------------------------
-    # Only an active Admin may use it; what they may do there is decided by
-    # each ModelAdmin (shop records are view-only), not by these flags.
+    # Only an active Superuser may use it (settings.ADMIN_SITE_ROLES); what
+    # they may do there is decided by each ModelAdmin (shop records are
+    # view-only), not by these flags.
     @property
     def is_staff(self) -> bool:
-        return self.active and self.role == Role.ADMIN
+        from django.conf import settings
+
+        return self.active and self.role in settings.ADMIN_SITE_ROLES
 
     @property
     def is_superuser(self) -> bool:
-        return False
+        return self.is_staff
 
     def has_perm(self, perm, obj=None) -> bool:
         return self.is_staff

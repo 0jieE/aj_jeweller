@@ -95,9 +95,9 @@ class StaffManagementTests(ApiTestCase):
         self.assertEqual(self.refusal(self.post(ARNEL, "/users", {"name": "  ", "role": "admin", "pin": "2468"})),
                          "A user needs a name")
 
-    def test_only_an_admin_manages_staff(self):
+    def test_only_an_admin_or_supervisor_manages_staff(self):
         message = self.refusal(self.post(GRACE, "/users", {"name": "X", "role": "admin", "pin": "2468"}), 403)
-        self.assertEqual(message, "Only an Admin can manage staff")
+        self.assertEqual(message, "Only a Supervisor or Admin can manage staff")
 
     def test_editing_a_user_records_before_and_after(self):
         response = self.patch(ARNEL, f"/users/{GRACE}", {"name": "Grace R. Ramos", "home_branch": "davao"},

@@ -74,7 +74,7 @@ class _CommitmentListScreenState extends State<CommitmentListScreen> {
             ],
         ],
       ),
-      floatingActionButton: role.canManageCommitmentsAndRates
+      floatingActionButton: role.canManageCommitments
           ? FloatingActionButton.extended(
               // Every tab stays mounted in the shell's IndexedStack, so
               // each FAB needs its own hero tag — otherwise Flutter finds

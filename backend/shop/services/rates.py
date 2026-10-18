@@ -1,7 +1,12 @@
 """Buying rates per purity (gold karat or silver fineness) and their history.
 
 One rate per purity: a second "18K" would leave the purchase form two setup
-prices for the same gold. Every price set is kept in RateChange, which is
+prices for the same gold.
+
+Every role may set a rate — Cashier, Appraiser and Sales Rep included. The
+counter quotes from them all day, and a rate nobody present can correct is
+worse than one anybody can. Rates are shop-wide, so a change applies to both
+branches; every change is logged under the name of whoever made it. Every price set is kept in RateChange, which is
 never edited or deleted — it is the price history the counter asks about
 ("what was 18K a week ago?").
 """
@@ -14,7 +19,7 @@ from ..enums import LogAction, is_silver_purity
 from ..errors import NotFound, Refusal
 from ..models import GoldRate, RateChange
 from ..text import date_short, peso, purity_text
-from .base import ADMIN_ONLY, Ctx, change, require_role, write_log
+from .base import Ctx, change, write_log
 
 
 def _close_of(day: date) -> datetime:
@@ -41,7 +46,6 @@ def add_problem(karat: int, silver: bool) -> str | None:
 
 
 def add_rate(ctx: Ctx, karat: int, price_per_gram_centavos: int, silver: bool | None = None) -> GoldRate:
-    require_role(ctx, ADMIN_ONLY, "manage rates")
     silver = is_silver_purity(karat) if silver is None else silver
     problem = add_problem(karat, silver)
     if problem:
@@ -70,7 +74,6 @@ def _set_price(ctx: Ctx, rate: GoldRate, price: int, restored_from: date | None)
 def update_rate(ctx: Ctx, karat: int, price_per_gram_centavos: int) -> tuple[GoldRate, bool]:
     """Sets one purity's price. Saving the same figure again is not a change and
     adds nothing to the history. Returns (rate, changed)."""
-    require_role(ctx, ADMIN_ONLY, "manage rates")
     rate = get_rate(karat)
     if price_per_gram_centavos <= 0:
         raise Refusal("A rate must be above zero", code="rate_not_positive")
@@ -105,7 +108,6 @@ def apply_from(ctx: Ctx, day: date, *, silver: bool) -> int:
     `day`, in one go — that day's table is one set of quotes. Rates not yet set
     on that day, or already at that price, are left alone. One history row per
     changed rate; one log row for the whole table. Returns how many changed."""
-    require_role(ctx, ADMIN_ONLY, "manage rates")
     changes = []
     for rate in GoldRate.objects.order_by("-karat"):
         if is_silver_purity(rate.karat) != silver:

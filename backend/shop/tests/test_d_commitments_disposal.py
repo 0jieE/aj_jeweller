@@ -171,9 +171,9 @@ class DisposalTests(LoanMixin, ApiTestCase):
         self.assertNotIn(silver["id"],
                          [i["id"] for i in self.get(ARNEL, "/disposal/pool", {"silver": "true"}).data["results"]])
 
-    def test_only_an_admin_runs_disposal(self):
+    def test_counter_staff_do_not_run_disposal(self):
         loan = self.loan()
         response = self.post(GRACE, "/disposal", {"branch": "kidapawan", "item_ids": [self.scrap()["id"]],
                                                   "gross_grams": "1", "gross_amount_centavos": 1,
                                                   "commitment_id": loan["id"]})
-        self.assertEqual(self.refusal(response, 403), "Only an Admin can run disposal")
+        self.assertEqual(self.refusal(response, 403), "Only a Supervisor or Admin can run disposal")

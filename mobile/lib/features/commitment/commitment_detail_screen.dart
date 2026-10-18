@@ -32,7 +32,7 @@ class CommitmentDetailScreen extends StatelessWidget {
     final ledger = repo.ledgerFor(commitmentId);
     final c = ledger.commitment;
     final sc = context.semanticColors;
-    final canManage = appState.role.canManageCommitmentsAndRates;
+    final canManage = appState.role.canManageCommitments;
 
     return Scaffold(
       appBar: AppBar(title: Text(c.lender)),

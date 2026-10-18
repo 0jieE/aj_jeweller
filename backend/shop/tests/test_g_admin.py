@@ -15,9 +15,16 @@ from .helpers import ARNEL, BEN, GRACE, PIN, ApiTestCase
 FIXTURE = Path(__file__).parent / "fixtures" / "app_demo_snapshot.json"
 
 
+def make_superuser(user_id=ARNEL):
+    User.objects.filter(pk=user_id).update(role="superuser")
+
+
 class AdminTestCase(ApiTestCase):
+    """Signed in to the admin site as Arnel, made a Superuser — the only role it admits."""
+
     def setUp(self):
         super().setUp()
+        make_superuser()
         self.browser = Client()
         response = self.browser.post(reverse("admin:login"), {"username": "Arnel Javier", "password": PIN,
                                                                "next": "/admin/"})
@@ -28,12 +35,13 @@ class AdminSignInTests(ApiTestCase):
     def login(self, username, pin):
         return Client().post(reverse("admin:login"), {"username": username, "password": pin, "next": "/admin/"})
 
-    def test_an_admin_signs_in_with_name_or_id_and_pin(self):
+    def test_a_superuser_signs_in_with_name_or_id_and_pin(self):
+        make_superuser()
         self.assertEqual(self.login("arnel  JAVIER", PIN).status_code, 302)
         self.assertEqual(self.login(ARNEL, PIN).status_code, 302)
 
     def test_branch_staff_and_wrong_pins_are_turned_away(self):
-        self.assertContains(self.login("Grace Ramos", PIN), "Only an Admin can use the administration site")
+        self.assertContains(self.login("Grace Ramos", PIN), "Only a Superuser can use the administration site")
         self.assertContains(self.login("Arnel Javier", "0000"), "That name and PIN don&#x27;t match")
 
     def test_admin_pages_need_a_sign_in(self):
@@ -96,7 +104,7 @@ class AdminStaffTests(AdminTestCase):
         response = self.browser.post(f"/admin/accounts/user/{ARNEL}/change/", {
             "name": "Arnel Javier", "role": "cashier", "home_branch": "davao", "contact_number": ""})
         self.assertContains(response, "only active Admin")
-        self.assertEqual(User.objects.get(pk=ARNEL).role, "admin")
+        self.assertEqual(User.objects.get(pk=ARNEL).role, "superuser")
         self.assertFalse(TransactionLog.objects.filter(action="userUpdated").exists())
 
     def test_editing_and_resetting_a_pin(self):

@@ -13,11 +13,11 @@ from django.core.files.base import ContentFile
 from notifications import events as notify
 
 from ..enums import CommitmentStatus, ItemStatus, ItemType, LogAction, LogRecordKind, VerificationStatus
-from ..errors import Refusal
+from ..errors import Forbidden, Refusal
 from ..ids import claim
 from ..models import Commitment, DisposalBatch, DisposalItem, Item
 from ..text import fixed3, peso
-from .base import ADMIN_ONLY, Ctx, branch_for_write, require_role, write_log
+from .base import BRANCH_MANAGERS, Ctx, branch_for_write, require_role, write_log
 from .commitments import ledger
 
 
@@ -58,7 +58,7 @@ def karat_breakdown(batch: DisposalBatch) -> list[tuple[int, Decimal]]:
 def complete(ctx: Ctx, *, branch_id: str | None, item_ids: list[str], gross_grams: Decimal,
              gross_amount_centavos: int, commitment_id: str, capital_centavos: int | None = None, date=None,
              photo: ContentFile | None = None, batch_id: str | None = None) -> DisposalBatch:
-    require_role(ctx, ADMIN_ONLY, "run disposal")
+    require_role(ctx, BRANCH_MANAGERS, "run disposal")
     branch = branch_for_write(ctx, branch_id)
     if not item_ids:
         raise Refusal("Pick at least one piece to dispose of", code="no_items")
@@ -67,6 +67,10 @@ def complete(ctx: Ctx, *, branch_id: str | None, item_ids: list[str], gross_gram
     commitment = Commitment.objects.filter(pk=commitment_id).first() if commitment_id else None
     if commitment is None:
         raise Refusal("Pick the commitment this batch settles to continue.", code="commitment_required")
+    if commitment.branch_id is None and ctx.is_supervisor:
+        # Paying down a company-wide loan changes the Admin's loan.
+        raise Forbidden("A company-wide loan is the Admin's — only an Admin can apply a batch to it",
+                        code="company_loan")
     if commitment.branch_id is not None and commitment.branch_id != branch.id:
         raise Refusal(f"That loan belongs to {commitment.branch.label}, not {branch.label}", code="commitment_branch")
     loan = ledger(commitment)

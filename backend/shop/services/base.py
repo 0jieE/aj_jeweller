@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from django.db import connection
 from django.utils import timezone
 
-from ..enums import BranchId, LogAction, Role, category_for
+from ..enums import BranchId, LogAction, Role, category_for, oversees_both
 from ..errors import Forbidden, NotFound
 from ..ids import new_id
 from ..models import Branch, TransactionLog
@@ -56,20 +56,33 @@ class Ctx:
 
     @property
     def is_admin(self) -> bool:
-        return self.actor.role == Role.ADMIN
+        """Oversees both branches: an Admin, or a Superuser (an Admin everywhere in the shop)."""
+        return oversees_both(self.actor.role)
+
+    @property
+    def is_supervisor(self) -> bool:
+        return self.actor.role == Role.SUPERVISOR
 
 
 # --- who may do what ---------------------------------------------------------
 
-ENCODE_PURCHASES = frozenset({Role.ASSISTANT_APPRAISER, Role.ADMIN})
-BUILD_SALES = frozenset({Role.SALES_REP, Role.ADMIN})
-MOVE_CASH = frozenset({Role.CASHIER, Role.ADMIN})
-ADMIN_ONLY = frozenset({Role.ADMIN})
+# A Superuser is an Admin everywhere in the shop, so every set an Admin is in
+# holds the Superuser too. A Supervisor's sets are additionally scoped to their
+# home_branch by require_branch / branch_for_write wherever they are used.
+_BOTH = {Role.ADMIN, Role.SUPERUSER}
+ENCODE_PURCHASES = frozenset({Role.ASSISTANT_APPRAISER, *_BOTH})
+BUILD_SALES = frozenset({Role.SALES_REP, *_BOTH})
+MOVE_CASH = frozenset({Role.CASHIER, Role.SUPERVISOR, *_BOTH})
+# Running a branch: corrections, partition returns, disposal, the branch's
+# loans, its counter staff.
+BRANCH_MANAGERS = frozenset({Role.SUPERVISOR, *_BOTH})
+ADMIN_ONLY = frozenset(_BOTH)
 
 _ROLE_WORDS = {
     ENCODE_PURCHASES: "an Assistant Appraiser or Admin",
     BUILD_SALES: "a Sales Rep or Admin",
-    MOVE_CASH: "a Cashier or Admin",
+    MOVE_CASH: "a Cashier, Supervisor or Admin",
+    BRANCH_MANAGERS: "a Supervisor or Admin",
     ADMIN_ONLY: "an Admin",
 }
 
@@ -84,7 +97,7 @@ def require_role(ctx: Ctx, roles: frozenset, doing: str) -> None:
 
 
 def require_branch(ctx: Ctx, branch_id: str | None) -> None:
-    """Branch staff act on their own branch; Admin acts on both."""
+    """Branch staff and Supervisors act on their own branch; Admin acts on both."""
     if ctx.is_admin or branch_id is None:
         return
     if ctx.actor.home_branch != branch_id:

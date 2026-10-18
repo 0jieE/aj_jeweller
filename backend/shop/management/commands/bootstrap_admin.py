@@ -11,7 +11,7 @@ from django.db import transaction
 
 from accounts.models import User
 from accounts.services import check_pin
-from shop.enums import LogAction, LogRecordKind, Role
+from shop.enums import BOTH_BRANCH_ROLES, LogAction, LogRecordKind, Role
 from shop.errors import ShopError
 from shop.ids import claim_user_id
 from shop.services.base import Ctx, acquire_write_lock, write_log
@@ -24,19 +24,21 @@ class Command(BaseCommand):
         parser.add_argument("--id", default="USR-AJ01")
         parser.add_argument("--name", required=True)
         parser.add_argument("--pin", required=True)
+        parser.add_argument("--role", choices=["admin", "superuser"], default="admin",
+                            help="superuser can also use the Django admin site")
 
     def handle(self, *args, **options):
         try:
             check_pin(options["pin"])
             with transaction.atomic():
                 acquire_write_lock()
-                if User.objects.filter(role=Role.ADMIN, active=True).exists():
+                if User.objects.filter(role__in=BOTH_BRANCH_ROLES, active=True).exists():
                     raise CommandError("An active Admin already exists — add more staff through the API")
-                user = User(id=claim_user_id(options["id"]), name=options["name"], role=Role.ADMIN)
+                user = User(id=claim_user_id(options["id"]), name=options["name"], role=options["role"])
                 user.set_password(options["pin"])
                 user.save()
                 # Every write names a person; the first Admin names themself.
-                write_log(Ctx.for_user(user), LogAction.USER_ADDED, f"Added {user.name} as Admin",
+                write_log(Ctx.for_user(user), LogAction.USER_ADDED, f"Added {user.name} as {Role(user.role).label}",
                           record_id=user.id, record_kind=LogRecordKind.USER)
         except ShopError as error:
             raise CommandError(error.message) from error

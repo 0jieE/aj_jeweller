@@ -65,7 +65,6 @@ class RateTests(ApiTestCase):
         self.assertEqual(self.refusal(self.post(ARNEL, "/rates", {"karat": 16, "price_per_gram_centavos": 0})),
                          "A rate must be above zero")
         self.assertEqual(GoldRate.objects.get(pk=18).price_per_gram_centavos, 461300)
-        self.refusal(self.post(GRACE, "/rates", {"karat": 16, "price_per_gram_centavos": 1}), 403)
 
     def test_an_edit_is_recorded_with_before_after_and_who(self):
         count = len(self.history(18))

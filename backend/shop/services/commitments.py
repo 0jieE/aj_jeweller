@@ -21,12 +21,12 @@ from ..enums import (
     LogAction,
     LogRecordKind,
 )
-from ..errors import NotFound, Refusal
+from ..errors import Forbidden, NotFound, Refusal
 from ..ids import claim
 from ..models import Commitment
 from ..text import peso
 from . import cash
-from .base import ADMIN_ONLY, Ctx, get_branch, require_role, write_log
+from .base import BRANCH_MANAGERS, Ctx, get_branch, require_branch, require_role, write_log
 
 THREE = Decimal("0.001")
 
@@ -90,10 +90,20 @@ def get_commitment(commitment_id: str) -> Commitment:
         raise NotFound("Commitment not found") from None
 
 
+def require_loan_power(ctx: Ctx, branch_id: str | None) -> None:
+    """Admin manages every loan; a Supervisor only their own branch's. A
+    company-wide loan (no branch) stays the Admin's."""
+    require_role(ctx, BRANCH_MANAGERS, "manage commitments")
+    if ctx.is_supervisor:
+        if branch_id is None:
+            raise Forbidden("A company-wide loan is the Admin's — only an Admin can manage it", code="company_loan")
+        require_branch(ctx, branch_id)
+
+
 def add(ctx: Ctx, *, lender: str, amount_centavos: int, rate_per_gram_centavos: int, branch_id: str | None,
         date_approved=None, commitment_id: str | None = None) -> Commitment:
     """A new loan always starts loanPending — there is no status to set."""
-    require_role(ctx, ADMIN_ONLY, "manage commitments")
+    require_loan_power(ctx, branch_id or None)
     lender = (lender or "").strip()
     if not lender:
         raise Refusal("A commitment needs the lender's name", code="lender_required")
@@ -116,8 +126,8 @@ def receive(ctx: Ctx, commitment_id: str, proof_photo: ContentFile | None, cash_
     """loanPending -> loanReceived: records when the cash arrived and, for a
     branch loan, credits that branch's Purchase Cash. A company-wide loan
     credits no single branch. Returns (commitment, cash entry or None)."""
-    require_role(ctx, ADMIN_ONLY, "manage commitments")
     commitment = get_commitment(commitment_id)
+    require_loan_power(ctx, commitment.branch_id)
     if commitment.date_received is not None:
         raise Refusal("Cash for this loan was already recorded as received", code="already_received")
     if proof_photo is None:

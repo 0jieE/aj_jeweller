@@ -138,6 +138,13 @@ AUTH_USER_MODEL = "accounts.User"
 # The admin site signs in like the app: name (or user id) and PIN, with the
 # same lockout. Only active Admins get in.
 AUTHENTICATION_BACKENDS = ["accounts.backends.PinBackend"]
+# Roles that may sign in to the Django admin site: the Superuser, and nobody
+# else. DJANGO_ADMIN_SITE_ROLES=superuser,admin lets an Admin back in while the
+# phones still cannot parse "superuser" (see README, "Roles"); set it back
+# afterwards. Never put branch roles here.
+ADMIN_SITE_ROLES = frozenset(
+    r.strip() for r in env("DJANGO_ADMIN_SITE_ROLES", "superuser").split(",") if r.strip() in ("superuser", "admin")
+) or frozenset({"superuser"})
 LOGIN_URL = "admin:login"
 # An admin session ends when the browser closes, or after 8 hours.
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

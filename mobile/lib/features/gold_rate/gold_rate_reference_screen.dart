@@ -40,7 +40,7 @@ class _GoldRateReferenceScreenState extends State<GoldRateReferenceScreen>
   @override
   Widget build(BuildContext context) {
     final role = context.watch<AppState>().role;
-    final editable = role.canManageCommitmentsAndRates;
+    final editable = role.canManageRates;
 
     return Scaffold(
       appBar: AppBar(

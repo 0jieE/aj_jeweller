@@ -92,6 +92,7 @@ class CreateStaffTests(TestCase):
         _, err = self.run_command(rows, "--apply", expect_refusal=True)
         self.assertIn("role 'manager' is not one of", err)
         self.assertIn("an Admin works across both branches", err)
+        self.assertNotIn("a Admin", err)
         self.assertIn("a Cashier works from one branch", err)
         self.assertIn("A PIN is 4 to 6 digits", err)
         self.assertIn("Kida Cashier is already on file", err)

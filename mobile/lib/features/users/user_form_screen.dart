@@ -56,15 +56,20 @@ class _UserFormScreenState extends State<UserFormScreen> {
   Widget build(BuildContext context) {
     final repo = context.watch<AppRepository>();
     final appState = context.watch<AppState>();
-    final canManage = appState.role.canManageUsers;
     final user = _isNew ? null : repo.findUser(widget.userId);
+    // A Supervisor takes on their branch's counter staff; they do not appoint
+    // Supervisors, Admins or Superusers. The server refuses that too, so the
+    // form never offers it rather than letting it be typed and bounced back.
+    final offerable = appState.role.assignableRoles;
+    final canManage = appState.role.canManageUsers &&
+        (user == null || appState.role.canManageStaffOf(user.role));
 
     if (!_isNew && user == null) {
       return Scaffold(appBar: AppBar(), body: const Center(child: Text('User not found')));
     }
 
     final nameProblem = _name.text.trim().isEmpty ? null : repo.userNameProblem(_name.text, exceptId: user?.id);
-    final needsBranch = _role != AppUserRole.admin;
+    final needsBranch = !_role.runsTheShop;
     final valid = _name.text.trim().isNotEmpty && nameProblem == null && (!needsBranch || _branch != null);
     final isYou = user != null && user.id == appState.currentUser.id;
     final activity = user == null ? 0 : repo.userActivityCount(user.id);
@@ -114,8 +119,8 @@ class _UserFormScreenState extends State<UserFormScreen> {
             ),
             child: Column(
               children: [
-                for (final role in AppUserRole.values) ...[
-                  if (role != AppUserRole.values.first) const Divider(height: 1),
+                for (final role in offerable) ...[
+                  if (role != offerable.first) const Divider(height: 1),
                   InkWell(
                     onTap: canManage ? () => setState(() => _role = role) : null,
                     child: Padding(

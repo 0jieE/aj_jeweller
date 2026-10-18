@@ -1,6 +1,6 @@
 """The admin site: same sign-in as the app, and a PIN — not a password — change.
 
-Only active Admins get in. Sign in with your name (or user id) and PIN; wrong
+Only an active Superuser gets in (settings.ADMIN_SITE_ROLES). Sign in with your name (or user id) and PIN; wrong
 PINs count towards the same lockout as the phone.
 """
 
@@ -41,7 +41,7 @@ class LoginForm(AdminAuthenticationForm):
         user.backend = "accounts.backends.PinBackend"
         self.user_cache = user
         if not user.is_staff:
-            raise forms.ValidationError("Only an Admin can use the administration site", code="not_admin")
+            raise forms.ValidationError("Only a Superuser can use the administration site", code="not_superuser")
         return self.cleaned_data
 
 

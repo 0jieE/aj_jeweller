@@ -137,7 +137,7 @@ class PurchaseBatchTests(ApiTestCase):
                          "Only an Assistant Appraiser or Admin can encode purchases")
         batch = self.three_pieces()
         self.assertEqual(self.refusal(self.release(batch["id"], by=LIZA, expect=None), 403),
-                         "Only a Cashier or Admin can release cash")
+                         "Only a Cashier, Supervisor or Admin can release cash")
 
     def test_branch_staff_work_their_own_branch(self):
         message = self.refusal(self.purchase(by=JOEL, branch="kidapawan", expect=None), 403)
@@ -294,10 +294,10 @@ class CorrectionTests(ApiTestCase):
         self.assertIn("not moved in the ledger", log.summary)
         self.assertIn({"field": "Amount", "before": "₱5,000.00", "after": "₱4,800.00"}, log.changes)
 
-    def test_only_an_admin_corrects(self):
+    def test_counter_staff_do_not_correct(self):
         item = self.released_item()
         self.assertEqual(self.refusal(self.patch(GRACE, f"/items/{item['id']}", {"description": "x"}), 403),
-                         "Only an Admin can correct records")
+                         "Only a Supervisor or Admin can correct records")
 
     def test_a_correction_that_changes_nothing_writes_nothing(self):
         item = self.released_item()

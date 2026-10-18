@@ -23,7 +23,7 @@ class RateHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final repo = context.watch<AppRepository>();
-    final editable = context.watch<AppState>().role.canManageCommitmentsAndRates;
+    final editable = context.watch<AppState>().role.canManageRates;
     final rate = repo.rateForKarat(karat);
     final history = repo.rateHistory(karat);
     final palette = PurityPalette.of(context, karat);

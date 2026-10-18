@@ -21,7 +21,7 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
 from .. import idempotency
-from ..enums import BranchId, Role
+from ..enums import BranchId, oversees_both
 from ..errors import Forbidden, Refusal
 from ..services.base import Ctx, acquire_write_lock
 
@@ -128,7 +128,7 @@ def read_branch(request) -> str | None:
     if asked is not None and asked not in BranchId.values:
         raise exceptions.ValidationError({"branch": [f'"{asked}" is not a branch — use kidapawan or davao']})
     user = request.user
-    if user.role == Role.ADMIN:
+    if oversees_both(user.role):
         return asked
     if asked is not None and asked != user.home_branch:
         raise Forbidden(f"You work from {BranchId(user.home_branch).label} — you can only see its records",

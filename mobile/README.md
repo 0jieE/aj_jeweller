@@ -155,12 +155,25 @@ Appraiser or the Sales Rep releases the cash and the shop does not stop. Every
 record names whoever actually did it, so covering for someone is visible in
 the log rather than hidden.
 
-What stays an Admin's: the cash ledger (entries, expenses, withdrawals,
-transfers between branches), corrections to a record, deleting a partition,
-disposal batches, commitments and rates, staff, the data import, and seeing
-both branches at once. Releasing a purchase and receiving payment are counter
-work and stay open to everyone — what an Admin keeps is moving and accounting
-for the shop's own money. See [lib/core/models/user_role.dart](lib/core/models/user_role.dart).
+Running the shop is what is restricted — the cash ledger (entries, expenses,
+withdrawals, transfers), corrections to a record, deleting a partition,
+disposal batches, commitments, staff, and the data import:
+
+| Role | Counter work | Runs | Server's admin site |
+| --- | --- | --- | --- |
+| Superuser | yes | both branches | yes |
+| Admin | yes | both branches | no |
+| Supervisor | yes | their own branch | no |
+| Cashier, Assistant Appraiser, Sales Rep | yes | — | no |
+
+A Supervisor may take on their branch's counter staff and set their PINs, but
+may not appoint a Supervisor, an Admin or a Superuser — including themselves.
+Gold and silver rates are open to everyone: the counter quotes from them all
+day, and every change is logged under the name of whoever made it.
+
+A role this build has never heard of — one added to the server before the
+phones are updated — is read as the most limited role rather than refused, so
+a new colleague in the staff list can never stop an old phone signing in. See [lib/core/models/user_role.dart](lib/core/models/user_role.dart).
 
 The Dashboard follows the same rule — everyone at a branch sees the counter's
 queue, and their own submissions underneath it when they have any.

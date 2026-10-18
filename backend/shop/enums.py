@@ -19,6 +19,34 @@ class Role(models.TextChoices):
     SALES_REP = "salesRep", "Sales Rep"
     CASHIER = "cashier", "Cashier"
     ADMIN = "admin", "Admin"
+    # Runs one branch without needing the Admin (cash ledger, corrections,
+    # disposal, that branch's loans and counter staff) — scoped to home_branch.
+    SUPERVISOR = "supervisor", "Supervisor"
+    # An Admin everywhere in the shop, and the only role that may use the
+    # Django administration site.
+    SUPERUSER = "superuser", "Superuser"
+
+
+# Who oversees both branches (has no home_branch).
+BOTH_BRANCH_ROLES = frozenset({Role.ADMIN, Role.SUPERUSER})
+# Counter work at one branch.
+COUNTER_ROLES = frozenset({Role.CASHIER, Role.ASSISTANT_APPRAISER, Role.SALES_REP})
+
+
+def oversees_both(role: str) -> bool:
+    return role in BOTH_BRANCH_ROLES
+
+
+def a_role(role: str, *, capital: bool = False) -> str:
+    """'an Admin', 'a Supervisor' — a role with its article, for messages."""
+    label = Role(role).label
+    article = "an" if label[0] in "AEIOU" else "a"
+    return f"{article.capitalize() if capital else article} {label}"
+
+
+def needs_branch(role: str) -> bool:
+    """Everyone but an Admin or Superuser works from exactly one branch."""
+    return role not in BOTH_BRANCH_ROLES
 
 
 class ItemType(models.TextChoices):

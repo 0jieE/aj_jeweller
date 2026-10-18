@@ -129,7 +129,8 @@ void main() {
         expect(role.canCorrectRecords, isFalse);
         expect(role.canManageCash, isFalse, reason: "the ledger is the Admin's");
         expect(role.canRunDisposal, isFalse);
-        expect(role.canManageCommitmentsAndRates, isFalse);
+        expect(role.canManageCommitments, isFalse);
+        expect(role.canManageRates, isTrue, reason: 'anyone at the counter keeps the rates current');
         expect(role.canManageUsers, isFalse);
         expect(role.canViewAllBranches, isFalse);
         expect(role.canDeletePartitions, isFalse);
@@ -138,6 +139,59 @@ void main() {
       expect(AppUserRole.admin.canManageCash, isTrue);
       expect(AppUserRole.admin.canManageUsers, isTrue);
       expect(AppUserRole.admin.canViewAllBranches, isTrue);
+    });
+
+    test('a Supervisor runs their branch, not the shop', () {
+      const supervisor = AppUserRole.supervisor;
+      expect(supervisor.runsABranch, isTrue);
+      expect(supervisor.runsTheShop, isFalse);
+      // Running a branch: the ledger, corrections, disposal, its loans.
+      expect(supervisor.canManageCash, isTrue);
+      expect(supervisor.canCorrectRecords, isTrue);
+      expect(supervisor.canRunDisposal, isTrue);
+      expect(supervisor.canManageCommitments, isTrue);
+      expect(supervisor.canManageUsers, isTrue);
+      // But only theirs: the branch picker is what keeps them there.
+      expect(supervisor.canViewAllBranches, isFalse);
+    });
+
+    test('a Superuser is an Admin everywhere in the shop', () {
+      for (final power in [
+        (AppUserRole r) => r.canManageCash,
+        (AppUserRole r) => r.canCorrectRecords,
+        (AppUserRole r) => r.canRunDisposal,
+        (AppUserRole r) => r.canManageCommitments,
+        (AppUserRole r) => r.canManageUsers,
+        (AppUserRole r) => r.canViewAllBranches,
+        (AppUserRole r) => r.canDeletePartitions,
+      ]) {
+        expect(power(AppUserRole.superuser), power(AppUserRole.admin));
+      }
+    });
+
+    test('a Supervisor may take on counter staff, never another manager', () {
+      const supervisor = AppUserRole.supervisor;
+      for (final target in [AppUserRole.cashier, AppUserRole.assistantAppraiser, AppUserRole.salesRep]) {
+        expect(supervisor.canManageStaffOf(target), isTrue);
+      }
+      for (final target in [AppUserRole.supervisor, AppUserRole.admin, AppUserRole.superuser]) {
+        expect(supervisor.canManageStaffOf(target), isFalse, reason: 'no climbing out of a branch');
+      }
+      expect(supervisor.assignableRoles, isNot(contains(AppUserRole.admin)));
+      // An Admin and a Superuser may appoint anyone.
+      for (final boss in [AppUserRole.admin, AppUserRole.superuser]) {
+        expect(boss.assignableRoles, AppUserRole.values);
+      }
+    });
+
+    test('a role this build has never heard of does not break the phone', () {
+      // A server updated before the shop's phones: the staff list still
+      // loads, and the server remains the judge of what they may do.
+      expect(AppUserRole.parse('supervisor'), AppUserRole.supervisor);
+      expect(AppUserRole.parse('superuser'), AppUserRole.superuser);
+      expect(AppUserRole.parse('nightWatchman'), AppUserRole.salesRep);
+      expect(AppUserRole.parse(null), AppUserRole.salesRep);
+      expect(AppUserRole.parse('nightWatchman').runsABranch, isFalse);
     });
 
     test('a Sales Rep can release a purchase when the Cashier is out', () {

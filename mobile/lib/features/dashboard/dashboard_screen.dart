@@ -904,7 +904,7 @@ class _QuickEntryGrid extends StatelessWidget {
           context.semanticColors.sellCoral,
           onTap: () => onNavigateToTab?.call(2),
         ),
-      if (role.canManageCommitmentsAndRates || role.canViewAllBranches)
+      if (role.canManageCommitments || role.canViewAllBranches)
         _QuickAction(
           'Commitments',
           Icons.handshake_rounded,

@@ -154,8 +154,16 @@ def record_transfer(ctx: Ctx, *, from_branch: str | None, to_branch: str, from_a
     """Moves money as one matched pair: a transferOut and a transferIn sharing
     a pair id, so the two sides can never drift apart."""
     require_role(ctx, MOVE_CASH, "move cash")
-    source = branch_for_write(ctx, from_branch)
-    destination = get_branch(to_branch)
+    if ctx.is_supervisor:
+        # A Supervisor moves money where their own branch is one end — into it
+        # or out of it — and nowhere else.
+        source = get_branch(from_branch or ctx.actor.home_branch)
+        destination = get_branch(to_branch)
+        if ctx.actor.home_branch not in (source.id, destination.id):
+            require_branch(ctx, source.id)
+    else:
+        source = branch_for_write(ctx, from_branch)
+        destination = get_branch(to_branch)
     if source.id == destination.id and from_account == to_account:
         raise Refusal("A transfer needs a different branch or a different cash source", code="transfer_to_itself")
     _check_amount(amount_centavos)

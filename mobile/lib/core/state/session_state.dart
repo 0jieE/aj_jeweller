@@ -149,7 +149,7 @@ class SessionState extends ChangeNotifier {
     return AppUser(
       id: json['id'] as String,
       name: json['name'] as String,
-      role: AppUserRole.values.byName(json['role'] as String),
+      role: AppUserRole.parse(json['role'] as String?),
       homeBranch: branch == null ? null : BranchId.values.byName(branch as String),
       contactNumber: contact as String?,
       active: (json['active'] as bool?) ?? true,

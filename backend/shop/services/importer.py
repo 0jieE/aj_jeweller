@@ -40,6 +40,7 @@ from ..enums import (
     Role,
     VerificationStatus,
     category_for,
+    needs_branch,
 )
 from ..errors import Conflict, Refusal
 from ..ids import LEGACY_ID_RE
@@ -163,8 +164,8 @@ def _parse(data, problems: list[str]) -> dict:
                "role": r.get(u, "role", p, "str", choices=roles),
                "home_branch": r.get(u, "homeBranch", p, "str", null=True, choices=branches),
                "contact": r.get(u, "contact", p, "str", null=True), "active": r.get(u, "active", p, "bool", default=True)}
-        if row["role"] and (row["role"] == Role.ADMIN) != (row["home_branch"] is None):
-            r.fail(p, "an Admin works across both branches; everyone else works from one")
+        if row["role"] and needs_branch(row["role"]) == (row["home_branch"] is None):
+            r.fail(p, "an Admin or Superuser works across both branches; everyone else works from one")
         if row["name"] is not None and not row["name"].strip():
             r.fail(f"{p}.name", "is blank")
         out["users"].append(row)

@@ -116,13 +116,58 @@ narrows it.
 | Records | `GET/POST receipts`, `GET receipts/{id}`, `GET receipts/{id}/pdf`, `GET receipts/{id}/text`, `GET logs`, `GET logs/{id}`, `GET exports/{purchases\|sales\|expenses\|withdrawals}?format=csv\|xlsx\|pdf` |
 | Sync | `POST sync/import`, `GET sync/snapshot`, `GET sync/changes?since=`, `POST sync/push` |
 
-Roles follow the spec:
+### Roles
 
-- Encode purchases: Appraiser, Admin.
-- Build sales: Sales Rep, Admin.
-- Release and receive cash, verify, and manual cash entries: Cashier, Admin.
-- Disposal, commitments, rates, item corrections, partition returns and staff: Admin.
-- Everyone can read.
+| Role | Both branches | One branch | Django admin |
+| --- | --- | --- | --- |
+| `superuser` | yes | — | **yes** |
+| `admin` | yes | — | no |
+| `supervisor` | — | yes, their own | no |
+| `cashier`, `assistantAppraiser`, `salesRep` | — | counter work at their branch | no |
+
+- **Superuser** is an Admin everywhere in the shop, and the **only** role that
+  may sign in to the Django admin site.
+- **Admin** oversees both branches. It cannot sign in to the Django admin site,
+  and cannot create, edit or deactivate a Superuser or make anyone one.
+- **Supervisor** runs one branch without needing the Admin. Everything below is
+  limited to their `home_branch`, which they must have:
+  - the cash ledger: entries, expenses, withdrawals, corrections to manual
+    entries, and transfers where their branch is one end;
+  - releasing purchase cash and receiving payment, like a Cashier;
+  - item corrections and returning partitions;
+  - disposal batches;
+  - their branch's loans (adding and receiving them);
+  - their branch's counter staff: adding a Cashier, Appraiser or Sales Rep
+    there, editing them, setting their PIN, deactivating them.
+- **What a Supervisor may not do:**
+  - anything at the other branch;
+  - a company-wide loan, including applying a disposal to one; that stays the
+    Admin's;
+  - the import;
+  - touching an Admin, a Superuser or any Supervisor, themselves included, or
+    making anyone one of those. Such an attempt is refused (403), not quietly
+    filtered.
+
+  They don't encode purchases or build sales; that counter work stays with
+  Appraisers and Sales Reps (and Admins).
+- **Gold and silver rates** are open to every role. The counter quotes from
+  them all day, every change is logged under its author's name, and a change
+  applies to both branches.
+- **Permissions by task:**
+
+  | Task | Who |
+  | --- | --- |
+  | Encode purchases | Appraiser, Admin |
+  | Build sales | Sales Rep, Admin |
+  | Release and receive cash; manual cash entries | Cashier, Supervisor, Admin |
+  | Corrections, partition returns, disposal, branch loans, counter staff | Supervisor, Admin |
+  | Company-wide loans, the import, any staff | Admin |
+  | Read | everyone |
+
+  A Superuser can do everything an Admin can.
+- **Rules that hold at all times:** at least one active Admin or Superuser
+  always exists, and the last active Superuser can't be demoted, deactivated
+  or deleted.
 
 A few request details:
 
@@ -256,8 +301,9 @@ from a day offline doesn't flood the shop with notifications it already got.
 ## Admin site
 
 The admin site is at `/admin/` (for example http://localhost:8000/admin/). Sign in with
-your name or user id and your PIN, the same as on the phone. Only active
-Admins get in, and wrong PINs count toward the same lockout. "Change password"
+your name or user id and your PIN, the same as on the phone. **Only an
+active Superuser gets in**; an Admin is refused like a Cashier. Wrong PINs
+count toward the same lockout. "Change password"
 in the top bar changes your PIN.
 
 - **Staff** (Accounts → Users): add people, edit them, set a new PIN, and
@@ -418,6 +464,32 @@ The notification retry loop is a second service (`PUSH_DELIVERY=command`
 running `send_notifications` on a schedule). Without it, anything the web
 process could not send stays pending. Compose runs it as the `notifier`
 service; on a platform, make it a cron job or a background worker.
+
+### Deploying the Supervisor and Superuser roles
+
+**Do this in order.** Every phone reads a user's role by its exact name, and
+the app release before this one does not know `supervisor` or `superuser`. A
+phone that receives a person with either role fails to sign in or sync, and
+the sign-in list (`/auth/staff`) and every snapshot carry everyone's role.
+
+1. Deploy the server. As long as nobody holds a new role, it sends only the
+   four old role names, so phones carry on working. Apply the migrations:
+   they only widen the allowed role values. No data changes.
+2. From this moment **an Admin cannot sign in to the Django admin site.**
+   Nobody can until someone is a Superuser. If you need it before the app is
+   out, set `DJANGO_ADMIN_SITE_ROLES=superuser,admin` on the server for that
+   window, and remove it afterwards.
+3. Install the app release that knows the new roles on every phone.
+4. Then, and only then, run the one command this change requires, or nobody
+   can reach the admin site:
+
+   ```bash
+   DATABASE_URL="<external database url>" python manage.py set_role --id USR-AJ01 --role superuser
+   ```
+
+   It is idempotent and logged, and refuses an unknown id or role. Create
+   Supervisors the same way (`set_role --id … --role supervisor --branch
+   kidapawan`), or with `create_staff`, or from the app.
 
 ### Adding staff to a running server
 

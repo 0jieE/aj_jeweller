@@ -34,7 +34,7 @@ from django.db import transaction
 
 from accounts import services
 from accounts.models import User
-from shop.enums import BranchId, Role
+from shop.enums import BOTH_BRANCH_ROLES, BranchId, Role, a_role, needs_branch
 from shop.errors import ShopError
 from shop.ids import USER_ID_RE
 from shop.services.base import Ctx, acquire_write_lock
@@ -74,10 +74,10 @@ def _row_problem(row: dict) -> str | None:
     branch = row.get("home_branch") or None
     if branch is not None and branch not in BranchId.values:
         return f"home_branch {branch!r} is not kidapawan or davao"
-    if role == Role.ADMIN and branch is not None:
-        return "an Admin works across both branches — leave home_branch out"
-    if role != Role.ADMIN and branch is None:
-        return f"a {Role(role).label} works from one branch — give home_branch"
+    if not needs_branch(role) and branch is not None:
+        return f"{a_role(role)} works across both branches - leave home_branch out"
+    if needs_branch(role) and branch is None:
+        return f"{a_role(role)} works from one branch - give home_branch"
     pin = row.get("pin", DEFAULT_PIN)
     try:
         services.check_pin(pin if isinstance(pin, str) else str(pin))
@@ -166,17 +166,17 @@ class Command(BaseCommand):
         """The Admin who creates everyone: the owner if on file, else any active
         Admin — or, on an empty server, the first Admin in the file, created
         the way bootstrap_admin does it."""
-        admins = User.objects.filter(role=Role.ADMIN, active=True)
+        admins = User.objects.filter(role__in=BOTH_BRANCH_ROLES, active=True)
         actor = admins.filter(pk=OWNER_ID).first() or admins.order_by("created_at").first()
         if actor is not None:
             return actor
         for index, (label, row) in enumerate(pending):
-            if row["role"] != Role.ADMIN:
+            if row["role"] not in BOTH_BRANCH_ROLES:
                 continue
             pin = str(row.get("pin", DEFAULT_PIN))
             try:
                 with transaction.atomic():
-                    call_command("bootstrap_admin", id=row["id"], name=row["name"], pin=pin,
+                    call_command("bootstrap_admin", id=row["id"], name=row["name"], pin=pin, role=row["role"],
                                  stdout=_Quiet(), stderr=_Quiet())
             except CommandError as error:
                 outcome.refused.append((label, str(error)))
