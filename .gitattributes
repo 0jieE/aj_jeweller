@@ -1,0 +1,9 @@
+# Keep text normalized in the repository.
+* text=auto
+
+# These run inside Linux containers. A carriage return makes the shell fail
+# with "not found" on the first line, so they stay LF on every machine.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.conf text eol=lf
