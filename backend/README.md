@@ -406,12 +406,12 @@ python manage.py bootstrap_admin --id USR-AJ01 --name "Your Admin" --pin 1234
 
 Two things to settle before the shop depends on it:
 
-- **Photos and receipts need a disk that survives a deploy.** The container's
-  filesystem does not: every deploy and every restart takes `media/` with it,
-  and a released purchase loses the photo of the cash being handed over —
-  which is the point of taking it. Attach a persistent disk mounted at
-  `/app/media` and set `MEDIA_ROOT=/app/media`, or move storage to S3/R2 (see
-  below). A free instance has no disk, so treat free as a trial only.
+- **Photos and receipts must survive a deploy.** The container's filesystem
+  does not: every deploy and every restart takes `media/` with it, and a
+  released purchase loses the photo of the cash being handed over — which is
+  the point of taking it. Set `CLOUDINARY_URL` (see [Photos and receipts on
+  Cloudinary](#photos-and-receipts-on-cloudinary)); that also makes a free
+  instance usable, since it needs no disk.
 - **A free instance sleeps.** After about fifteen minutes idle the next
   request waits roughly a minute while it wakes. The app is offline-first, so
   the counter keeps working and the queue goes up when the server answers —
@@ -442,13 +442,84 @@ Encrypt), set `DJANGO_CSRF_TRUSTED_ORIGINS`, and turn on
 `SECURE_SSL_REDIRECT` and `SECURE_HSTS_SECONDS`. `python manage.py check
 --deploy` lists what is still missing.
 
+### Photos and receipts on Cloudinary
+
+With `CLOUDINARY_URL` set, every photo (customers, pieces, cash-release and
+loan proofs, disposal settlements) and every receipt PDF is stored on
+Cloudinary instead of local disk. Without it, files stay in `MEDIA_ROOT`.
+Tests always use local disk.
+
+```
+CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>   # Cloudinary console > Settings > API Keys
+CLOUDINARY_FOLDER=aj-jeweler        # production; use aj-jeweler-dev on a development machine
+```
+
+- **Private assets.** Assets are uploaded as *authenticated*: they can be
+  fetched only through a URL signed with the account's secret. The API hands
+  those out as `photo_url` and in receipt links, so customer faces and counted
+  cash are never public files.
+- **Where they live.** Photos are image assets. Receipt PDFs are raw assets,
+  so they arrive exactly as issued; Cloudinary blocks PDF delivery as images
+  on many accounts.
+- **Names.** The database keeps Django's file name. The Cloudinary public id
+  is that name under `CLOUDINARY_FOLDER` (see the folder layout below).
+- **Nothing else changes.** Snapshots that carry photos as base64, the receipt
+  PDF download and the admin's thumbnails all read through Django's storage
+  API.
+- **Backups.** Assets live on Cloudinary, so the `media` volume is no longer
+  part of the backup.
+- **Replaced photos.** When a photo is replaced, the old asset stays on
+  Cloudinary (nothing deletes evidence automatically).
+
+### Folder layout
+
+Files are organised by **kind, then branch, then year and month**. Someone can
+then browse "the Kidapawan release proofs from October" in the Cloudinary
+Media Library without reading through thousands of ids:
+
+```
+aj-jeweler/                                   CLOUDINARY_FOLDER (MEDIA_ROOT on local disk: same layout)
+  customers/shop/2026/09/CUS005-20260912110000000003.jpg
+  items/davao/2026/10/L2M8XK-20261018090501000001.jpg
+  release-proofs/kidapawan/2026/10/A3T8QD-20261018143022123456.jpg
+  loan-proofs/shop/2026/10/P2N9KM-20261008102527000004.jpg
+  disposals/kidapawan/2026/10/F6H3ZN-20261003102527000005.jpg
+  receipts/kidapawan/2026/10/S4M2HQ-20261016103527000006.pdf
+```
+
+- **Branch:** `kidapawan` or `davao`. A record with no branch (a customer, a
+  company-wide loan), or an unexpected one, goes under `shop`. Working out the
+  folder never fails an upload.
+- **Month:** the record's own date. That is the purchase date for pieces
+  (a photo added later still files with the piece), the release time for
+  release proofs, the receipt time for loan proofs, the settlement date for
+  disposals, and the issue time for receipts. Customer photos use the time of
+  upload, because a person's photo is retaken whenever.
+  `shop/media_paths.py` holds the rules.
+- **File names:** `<record-id>-<timestamp>.<ext>`, with ids only. A path
+  travels in URLs and shows in the Media Library, so it never carries a name,
+  number or address.
+
+**Old files stay where they were.** Rows saved before this layout keep their
+flat paths (`items/A3T8QD-….jpg`) and still open, download and delete. Only
+new uploads use the folders. To move the old ones:
+
+```bash
+python manage.py reorganise_media                    # dry run (default): what would move, per kind
+python manage.py reorganise_media --kind items       # one kind at a time
+python manage.py reorganise_media --apply            # really move
+```
+
+It works one record at a time: it copies the file to the new path, points the
+row at the copy, and deletes the old asset only after that is saved. It skips
+anything already in place, so it can be stopped and run again. A file it
+cannot read is reported and left alone. Phones notice nothing, because
+snapshots still carry the same bytes as base64.
+
 ### Other notes
 
-- Media: to move photos off the machine, install `django-storages[s3]` and
-  point `STORAGES["default"]` at the bucket. Models use Django's storage API,
-  so no code changes.
-- `/media/` is served by Django only when `DEBUG` is on; in production nginx
-  serves it.
+- Without Cloudinary, `/media/` is served by Django only when `DEBUG` is on;
+  in production nginx serves it.
 
 ## Layout
 

@@ -165,8 +165,17 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+
+# Photos and receipt PDFs go to Cloudinary when CLOUDINARY_URL is set
+# (cloudinary://<api_key>:<api_secret>@<cloud_name>), local disk otherwise.
+# Tests always use local disk, whatever .env says.
+CLOUDINARY_URL = "" if RUNNING_TESTS else env("CLOUDINARY_URL", "").strip()
+# Every asset lives under this folder; give development and production different ones.
+CLOUDINARY_FOLDER = env("CLOUDINARY_FOLDER", "aj-jeweler")
+
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": {"BACKEND": "shop.storage.CloudinaryStorage" if CLOUDINARY_URL
+                else "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
         if not DEBUG
@@ -175,8 +184,7 @@ STORAGES = {
 }
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Photos and receipt PDFs. Local disk in development; point STORAGES at an
-# S3-compatible backend in production (see README).
+# Local-disk media (used only when Cloudinary is not configured).
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "media")))
 if not MEDIA_ROOT.is_absolute():

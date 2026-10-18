@@ -42,34 +42,43 @@ def grams_field(**kwargs):
     return models.DecimalField(max_digits=10, decimal_places=3, **kwargs)
 
 
-def _upload(folder: str, instance, filename: str) -> str:
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    return f"{folder}/{instance.pk}-{timezone.now():%Y%m%d%H%M%S%f}.{ext}"
-
-
-# Module-level functions, so migrations can reference them by import path.
+# Module-level functions, so migrations can reference them by import path —
+# keep these names. Each files its kind under kind/branch/YYYY/MM/ (see
+# shop/media_paths.py, which also says which date each kind uses).
 def customer_photo_path(instance, filename):
-    return _upload("customers", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("customers", instance, filename)
 
 
 def item_photo_path(instance, filename):
-    return _upload("items", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("items", instance, filename)
 
 
 def release_proof_path(instance, filename):
-    return _upload("release-proofs", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("release-proofs", instance, filename)
 
 
 def commitment_proof_path(instance, filename):
-    return _upload("loan-proofs", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("loan-proofs", instance, filename)
 
 
 def disposal_photo_path(instance, filename):
-    return _upload("disposals", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("disposals", instance, filename)
 
 
 def receipt_pdf_path(instance, filename):
-    return _upload("receipts", instance, filename)
+    from .media_paths import upload_path
+
+    return upload_path("receipts", instance, filename)
 
 
 class RecordId(models.Model):
