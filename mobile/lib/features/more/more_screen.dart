@@ -18,6 +18,7 @@ import '../auth/session_actions.dart';
 import '../settings/settings_screen.dart';
 import '../sync/sync_status_screen.dart';
 import '../users/users_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Everything that isn't one of the five counter workflows: cash management,
 /// reference tables, history, settings, and the demo-data resets.
@@ -32,7 +33,8 @@ class MoreScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final role = context.watch<AppState>().role;
 
-    return ListView(
+    return ReadableWidth(
+      child: ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
         AppSpacing.md,
@@ -175,6 +177,7 @@ class MoreScreen extends StatelessWidget {
           style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
         ),
       ],
+      ),
     );
   }
 
@@ -218,8 +221,10 @@ class _TileGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 3,
+    // Three across a phone, more across a desktop — but each tile the same
+    // size either way, rather than three tiles stretched over a monitor.
+    return GridView.extent(
+      maxCrossAxisExtent: 148,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppSpacing.xs,

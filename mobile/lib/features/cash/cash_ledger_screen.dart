@@ -14,6 +14,7 @@ import '../../core/widgets/filter_menu_chip.dart';
 import '../../core/widgets/formatters.dart';
 import 'cash_entry_actions.dart';
 import 'new_cash_entry_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The branch cash screen, in two tabs: **History**, every entry that has
 /// ever moved a branch's money, and **Cash Entry**, the form for recording
@@ -41,6 +42,17 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
 
   @override
   Widget build(BuildContext context) {
+    // A phone shows one at a time and swaps between them. A desktop window
+    // has room for both, which is how the ledger is actually worked: the
+    // history on the left to check against, the entry being written on the
+    // right, without losing sight of either.
+    if (WindowSize.of(context).hasRoomForTwoColumns) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Cash')),
+        body: const _SideBySide(),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cash'),
@@ -724,6 +736,37 @@ class _OpeningBalanceFooter extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The desktop's cash screen: the ledger and the form, side by side.
+class _SideBySide extends StatelessWidget {
+  const _SideBySide();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Expanded(flex: 3, child: _HistoryTab()),
+        const VerticalDivider(width: 1, thickness: 1),
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 0),
+                child: Text('New Entry', style: AppTextStyles.titleLarge),
+              ),
+              // Nothing to switch back to: the history beside it already
+              // shows the entry the moment it is recorded.
+              const Expanded(child: CashEntryForm()),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

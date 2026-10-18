@@ -29,6 +29,7 @@ import '../scrap/disposal_selection_screen.dart';
 import '../scrap/scrap_inventory_screen.dart';
 import '../sell/sale_verification_detail_screen.dart';
 import '../sell/sale_verification_queue_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// When any rate was last set.
 DateTime _latestRateUpdate(List<GoldRate> rates) => rates.isEmpty
@@ -51,7 +52,8 @@ class DashboardScreen extends StatelessWidget {
 
     return RefreshIndicator(
       onRefresh: () async {},
-      child: ListView(
+      child: ReadableWidth(
+        child: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.md,
           AppSpacing.md,
@@ -96,6 +98,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           _TodaysActivityCard(branchId: branchId),
         ],
+      ),
       ),
     );
   }
@@ -926,8 +929,10 @@ class _QuickEntryGrid extends StatelessWidget {
 
     if (actions.isEmpty) return const SizedBox.shrink();
 
-    return GridView.count(
-      crossAxisCount: 2,
+    // Two across a phone; as many as fit on a desktop, each kept to the
+    // height of a button rather than stretched into a billboard.
+    return GridView.extent(
+      maxCrossAxisExtent: 260,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppSpacing.sm,

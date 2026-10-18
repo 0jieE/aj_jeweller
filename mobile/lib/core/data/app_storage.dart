@@ -1,29 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'app_repository.dart';
+import 'local_store.dart';
 
-/// Keeps the shop's data on the device between launches.
+/// Keeps the shop's data on this device between launches.
 ///
-/// The whole repository is written to one JSON file shortly after every
-/// change (writes are coalesced, so a burst of edits is one save), and read
-/// back on startup. Starting empty, resetting to demo data, and every record
-/// entered all survive closing the app.
-///
-/// Saves go to a temporary file first and are then renamed over the real one,
-/// so a phone dying mid-write leaves the previous save intact rather than a
-/// half-written file.
+/// The whole repository is written out shortly after every change (writes
+/// are coalesced, so a burst of edits is one save) and read back on startup,
+/// so everything entered survives closing the app — on a phone and in the
+/// desktop browser alike. Where it actually goes is [LocalStore]'s business.
 class AppStorage {
-  static const _fileName = 'aj_jeweler_data.json';
   static const _saveDelay = Duration(milliseconds: 400);
 
   final AppRepository repository;
-  final File file;
+  final LocalStore store;
   Timer? _pending;
   // Held so the listener lives as long as the storage does.
   // ignore: unused_field
@@ -38,17 +31,20 @@ class AppStorage {
   String? _outboxWaiting;
   bool _savingOutbox = false;
 
-  AppStorage._(this.repository, this.file);
+  AppStorage._(this.repository, this.store);
+
+  /// Where this device's copy lives, for the Sync page.
+  String get location => store.describe;
 
   /// Loads saved data into [repository] if there is any, then starts saving
-  /// every change. Returns null where there is no file system (the web
-  /// preview), in which case the app simply runs in memory as before.
+  /// every change. Returns null where there is nowhere to keep anything — a
+  /// private window, or site data blocked — in which case the app runs in
+  /// memory and the queue lives only as long as the tab does.
   static Future<AppStorage?> attach(AppRepository repository) async {
-    if (kIsWeb) return null;
     try {
-      final dir = await getApplicationSupportDirectory();
-      final file = File('${dir.path}${Platform.pathSeparator}$_fileName');
-      final storage = AppStorage._(repository, file);
+      final store = await openLocalStore();
+      if (store == null) return null;
+      final storage = AppStorage._(repository, store);
       await storage._load();
       repository.addListener(storage._schedule);
       // Flush straight away when the app is backgrounded or closed, rather
@@ -66,10 +62,8 @@ class AppStorage {
     }
   }
 
-  /// The queue of unsent writes lives beside the data, so a phone closed
+  /// The queue of unsent writes is kept beside the data, so a device closed
   /// mid-shift still owes the server exactly what it owed before.
-  File get _outboxFile => File('${file.path}.outbox');
-
   Future<void> saveOutbox(String json) async {
     _outboxWaiting = json;
     if (_savingOutbox) return;
@@ -78,9 +72,7 @@ class AppStorage {
       while (_outboxWaiting != null) {
         final next = _outboxWaiting!;
         _outboxWaiting = null;
-        final temp = File('${_outboxFile.path}.tmp');
-        await temp.writeAsString(next, flush: true);
-        await temp.rename(_outboxFile.path);
+        await store.writeOutbox(next);
       }
     } catch (error) {
       debugPrint('Could not save the sync queue: $error');
@@ -91,8 +83,9 @@ class AppStorage {
 
   Future<Map<String, dynamic>?> readOutbox() async {
     try {
-      if (!await _outboxFile.exists()) return null;
-      return (jsonDecode(await _outboxFile.readAsString()) as Map).cast<String, dynamic>();
+      final raw = await store.readOutbox();
+      if (raw == null) return null;
+      return (jsonDecode(raw) as Map).cast<String, dynamic>();
     } catch (error) {
       debugPrint('Could not read the sync queue: $error');
       return null;
@@ -100,21 +93,20 @@ class AppStorage {
   }
 
   Future<void> _load() async {
-    if (!await file.exists()) {
-      // First launch: nothing saved yet, so the demo data stands — and is
-      // written now, so the next launch reads it back instead of re-seeding.
+    final raw = await store.readData();
+    if (raw == null) {
+      // First launch: nothing saved yet, so what the app starts with stands —
+      // and is written now, so the next launch reads it back.
       await save();
       return;
     }
     try {
-      final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      repository.restoreSnapshot(json);
+      repository.restoreSnapshot(jsonDecode(raw) as Map<String, dynamic>);
     } catch (error) {
       // An unreadable save is kept aside rather than overwritten, so nothing
-      // is silently destroyed; the app falls back to demo data.
+      // is silently destroyed; the app falls back to what it starts with.
       debugPrint('Could not read saved data: $error');
-      final aside = File('${file.path}.unreadable-${DateTime.now().millisecondsSinceEpoch}');
-      await file.rename(aside.path);
+      await store.setAsideUnreadable();
     }
   }
 
@@ -132,10 +124,7 @@ class AppStorage {
     }
     _saving = true;
     try {
-      final json = jsonEncode(repository.toSnapshot());
-      final temp = File('${file.path}.tmp');
-      await temp.writeAsString(json, flush: true);
-      await temp.rename(file.path);
+      await store.writeData(jsonEncode(repository.toSnapshot()));
     } catch (error) {
       debugPrint('Could not save data: $error');
     } finally {

@@ -117,6 +117,43 @@ A shop that has been using the app with no server keeps its history:
 report is shown — what would be created, skipped, and any warnings — before
 anything is written. The real send is followed by a fresh snapshot.
 
+## The desktop, as a PWA
+
+The same code builds the back-office app. On the shop's PC you open the URL
+once in Edge or Chrome and click **Install**: it gets a taskbar icon and its
+own window, and nobody types a URL again.
+
+```
+flutter build web --release        # → build/web
+```
+
+What changes with the window, rather than with the platform
+([lib/core/navigation/layout.dart](lib/core/navigation/layout.dart)):
+
+- under 600px the navigation sits along the bottom, as a phone expects;
+  wider, it moves to a labelled rail down the side;
+- content stops widening at a readable width instead of running the length
+  of a monitor;
+- the cash ledger shows its history and its entry form side by side, which is
+  how the ledger is actually worked — the phone shows one at a time.
+
+The browser keeps this device's copy in **IndexedDB**
+([local_store_web.dart](lib/core/data/local_store_web.dart)); a phone keeps it
+in two files. Everything above that — the repository, the outbox, the sync
+service — never learns which it got
+([local_store.dart](lib/core/data/local_store.dart)). Clearing the browser's
+site data clears the copy, so it is a copy and never the only one: whatever
+has not reached the server is in the queue beside it.
+
+To look at any screen at any window size without a server or a PIN:
+
+```
+flutter run -t lib/main_preview.dart -d chrome
+```
+
+That entrypoint is for looking at layout only — the demo shop, nobody signed
+in. What ships is always `main.dart`.
+
 ## Notifications
 
 The app registers for Firebase Cloud Messaging once someone signs in, so the
