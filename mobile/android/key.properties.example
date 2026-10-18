@@ -1,0 +1,9 @@
+# Copy to key.properties and fill in. Keep the keystore outside the repository.
+# Generate one:
+#   keytool -genkeypair -keystore /path/to/aj-jeweler-release.p12 \
+#           -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 \
+#           -alias aj-jeweler
+storeFile=C:/secrets/aj-jeweler-release.p12
+storePassword=
+keyAlias=aj-jeweler
+keyPassword=

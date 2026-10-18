@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/forms.css" %}">{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a> &rsaquo; Change your PIN</div>
+{% endblock %}
+{% block content %}<div id="content-main">
+<form method="post">{% csrf_token %}
+<div>
+{% if form.errors %}<p class="errornote">Please correct the errors below.</p>{% endif %}
+<p>Your PIN is the same one you sign in with on the phone. Changing it here signs you out of the app on every phone.</p>
+<fieldset class="module aligned wide">
+{% for field in form %}
+<div class="form-row">
+  {{ field.errors }}
+  <div class="flex-container">{{ field.label_tag }} {{ field }}</div>
+  {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+</div>
+{% endfor %}
+</fieldset>
+<div class="submit-row"><input type="submit" value="Change my PIN" class="default"></div>
+</div>
+</form></div>
+{% endblock %}

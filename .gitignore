@@ -1,0 +1,23 @@
+# Editors
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Built apps kept for hand-installing. The repo is the source, not a file host.
+*.apk
+*.aab
+
+# Anything that can sign, authenticate, or unlock the shop's records.
+*.jks
+*.p12
+*.keystore
+*-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
+
+# Working notes written for an agent to act on, not part of the system.
+*_BACKEND_PROMPT.md

@@ -1,0 +1,12 @@
+name: app_snapshot_dump
+publish_to: 'none'
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  davao_aj_jewellers:
+    path: ../../../mobile
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

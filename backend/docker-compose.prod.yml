@@ -1,0 +1,82 @@
+# The shop's server: a database, the web process, nginx in front of it, and a
+# sender that retries any notification the web process could not deliver.
+#
+#   cp .env.production.example .env.production   # then fill it in
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml run --rm web python manage.py migrate
+#
+# Photos, receipts and the database live in named volumes, so `down` does not
+# take the shop's records with it. Only `down -v` does.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aj_jeweler}
+      POSTGRES_USER: ${POSTGRES_USER:-aj}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aj} -d ${POSTGRES_DB:-aj_jeweler}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aj}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-aj_jeweler}
+      MEDIA_ROOT: /app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - media:/app/media
+      - static:/app/staticfiles
+      # The Firebase key stays on the host, read-only, and never in the image.
+      # Unset, it mounts an empty placeholder and notifications stay off.
+      - ${FIREBASE_CREDENTIALS_HOST_FILE:-./deploy/no-firebase.json}:/run/secrets/firebase.json:ro
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000
+             --workers 3 --timeout 120 --access-logfile - --error-logfile -"
+
+  # The retry path. The web process sends after each commit; anything it could
+  # not get out — Firebase unreachable, a restart mid-send — waits here.
+  notifier:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-aj}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-aj_jeweler}
+      MEDIA_ROOT: /app/media
+      PUSH_DELIVERY: command
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - media:/app/media
+      - ${FIREBASE_CREDENTIALS_HOST_FILE:-./deploy/no-firebase.json}:/run/secrets/firebase.json:ro
+    command: >
+      sh -c "while true; do python manage.py send_notifications || true; sleep 120; done"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - media:/var/www/media:ro
+      - static:/var/www/static:ro
+
+volumes:
+  pgdata:
+  media:
+  static:

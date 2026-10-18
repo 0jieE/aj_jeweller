@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The shop's server runs on the counter's own network, over plain HTTP.
+     HTTPS is still used wherever the server offers it; this only says that
+     a local address is allowed to be plain. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
