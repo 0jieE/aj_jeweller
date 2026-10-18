@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from shop.models import GoldRate, RateChange, StoredReceipt, TransactionLog
 
-from .helpers import ARNEL, BEN, GRACE, LIZA, RHEA, ApiTestCase, png_b64
+from .helpers import ARNEL, BEN, GRACE, K_SUP, LIZA, RHEA, ApiTestCase, png_b64
 
 PRICES = {24: 615000, 22: 563800, 21: 538100, 20: 512500, 18: 461300, 14: 358800, 10: 256300, 999: 7500, 925: 6500}
 
@@ -224,7 +224,8 @@ class ExportTests(ApiTestCase):
         self.assertIn("aj-jeweler_purchases_all-branches_all-dates.csv", response["Content-Disposition"])
 
     def test_expenses_export_as_xlsx_and_pdf(self):
-        self.post(GRACE, "/cash/entries", {"type": "expense", "amount_centavos": 120000, "note": "Electric bill",
+        self.add_supervisors()
+        self.post(K_SUP, "/cash/entries", {"type": "expense", "amount_centavos": 120000, "note": "Electric bill",
                                            "category": "Utilities"}, expect=201)
         xlsx = self.api(GRACE).get("/api/v1/exports/expenses", {"format": "xlsx"})
         self.assertEqual(xlsx.status_code, 200)
@@ -305,11 +306,12 @@ class EveryMutationLogsOnceTests(ApiTestCase):
           "paymentReceived")
         s(GRACE, "post", "/receipts", {"record_id": sale["id"]}, "receiptIssued")
 
-        entry = s(GRACE, "post", "/cash/entries", {"type": "cashIn", "amount_centavos": 5000, "note": "Float"},
+        self.add_supervisors()
+        entry = s(K_SUP, "post", "/cash/entries", {"type": "cashIn", "amount_centavos": 5000, "note": "Float"},
                   "cashEntryRecorded")
-        s(GRACE, "patch", f"/cash/entries/{entry['id']}", {"amount_centavos": 6000}, "cashEntryEdited")
-        s(GRACE, "delete", f"/cash/entries/{entry['id']}", {"reason": "typo"}, "cashEntryDeleted")
-        s(GRACE, "post", "/cash/transfers", {"to_branch": "davao", "amount_centavos": 1000, "note": "Float"},
+        s(K_SUP, "patch", f"/cash/entries/{entry['id']}", {"amount_centavos": 6000}, "cashEntryEdited")
+        s(K_SUP, "delete", f"/cash/entries/{entry['id']}", {"reason": "typo"}, "cashEntryDeleted")
+        s(K_SUP, "post", "/cash/transfers", {"to_branch": "davao", "amount_centavos": 1000, "note": "Float"},
           "cashTransferred")
 
         loan = s(ARNEL, "post", "/commitments", {"lender": "Metro Pawnshop", "amount_centavos": 5000000,

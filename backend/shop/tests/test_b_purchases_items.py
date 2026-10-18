@@ -132,12 +132,10 @@ class PurchaseBatchTests(ApiTestCase):
         self.assertTrue(item.photo)
         self.assertEqual(item.encoded_by_id, LIZA)
 
-    def test_only_encoders_record_and_only_cashiers_release(self):
-        self.assertEqual(self.refusal(self.purchase(by=RHEA, expect=None), 403),
-                         "Only an Assistant Appraiser or Admin can encode purchases")
-        batch = self.three_pieces()
-        self.assertEqual(self.refusal(self.release(batch["id"], by=LIZA, expect=None), 403),
-                         "Only a Cashier, Supervisor or Admin can release cash")
+    def test_any_counter_role_may_encode_and_release(self):
+        batch = self.purchase(by=RHEA).data  # a Sales Rep encodes
+        released = self.release(batch["id"], by=LIZA).data  # an Appraiser releases
+        self.assertEqual((released["submitted_by"]["id"], released["released_by"]["id"]), (RHEA, LIZA))
 
     def test_branch_staff_work_their_own_branch(self):
         message = self.refusal(self.purchase(by=JOEL, branch="kidapawan", expect=None), 403)

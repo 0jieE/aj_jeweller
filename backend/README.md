@@ -125,6 +125,29 @@ narrows it.
 | `supervisor` | — | yes, their own | no |
 | `cashier`, `assistantAppraiser`, `salesRep` | — | counter work at their branch | no |
 
+The shop runs on two rules:
+
+- **Counter work is everyone's.** Any role can encode a purchase, build an
+  order, release the cash to a customer and receive payment, and return either
+  for correction. That covers Cashier, Assistant Appraiser, Sales Rep,
+  Supervisor, Admin and Superuser. When the Cashier is out, the Appraiser or
+  the Sales Rep carries on.
+
+  A role says what someone is normally responsible for, and who gets
+  *notified*, not what they're allowed to do. Every record names whoever
+  actually did the work, so covering for a colleague shows in the log.
+- **Running a branch is not shared.** The cash ledger means recording an
+  entry, an expense, a withdrawal or a transfer, and editing or deleting one.
+  That is the shop's own money being moved and accounted for, so it belongs
+  to the branch's Supervisor, and to an Admin or Superuser at both branches.
+  So do corrections, partition returns, disposal, loans and staff.
+
+  Releasing cash to a customer is counter work; moving the shop's float is
+  not.
+
+Branch scoping never changes: everyone works at their own branch, and an Admin
+or Superuser at either.
+
 - **Superuser** is an Admin everywhere in the shop, and the **only** role that
   may sign in to the Django admin site.
 - **Admin** oversees both branches. It cannot sign in to the Django admin site,
@@ -133,7 +156,6 @@ narrows it.
   limited to their `home_branch`, which they must have:
   - the cash ledger: entries, expenses, withdrawals, corrections to manual
     entries, and transfers where their branch is one end;
-  - releasing purchase cash and receiving payment, like a Cashier;
   - item corrections and returning partitions;
   - disposal batches;
   - their branch's loans (adding and receiving them);
@@ -147,9 +169,6 @@ narrows it.
   - touching an Admin, a Superuser or any Supervisor, themselves included, or
     making anyone one of those. Such an attempt is refused (403), not quietly
     filtered.
-
-  They don't encode purchases or build sales; that counter work stays with
-  Appraisers and Sales Reps (and Admins).
 - **Gold and silver rates** are open to every role. The counter quotes from
   them all day, every change is logged under its author's name, and a change
   applies to both branches.
@@ -157,10 +176,10 @@ narrows it.
 
   | Task | Who |
   | --- | --- |
-  | Encode purchases | Appraiser, Admin |
-  | Build sales | Sales Rep, Admin |
-  | Release and receive cash; manual cash entries | Cashier, Supervisor, Admin |
-  | Corrections, partition returns, disposal, branch loans, counter staff | Supervisor, Admin |
+  | Counter work: encode and resubmit purchases, draw partitions, build and hold orders, release cash, receive payment, return either for correction | everyone, at their own branch |
+  | Gold and silver rates | everyone |
+  | The cash ledger: entries, expenses, withdrawals, transfers, editing and deleting them | Supervisor (own branch), Admin |
+  | Corrections, partition returns, disposal, branch loans, counter staff | Supervisor (own branch), Admin |
   | Company-wide loans, the import, any staff | Admin |
   | Read | everyone |
 

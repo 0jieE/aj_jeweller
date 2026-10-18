@@ -29,6 +29,13 @@ STAFF = [
 
 ARNEL, LIZA, RHEA, GRACE, JOEL, PAOLO, BEN = (s[0] for s in STAFF)
 
+# Branch Supervisors, who run the cash ledger. Not in STAFF (tests that count
+# staff or notifications expect the app's seven); add them with
+# ApiTestCase.add_supervisors() where a test needs the ledger.
+K_SUP, D_SUP = "USR-K-SUP", "USR-D-SUP"
+SUPERVISORS = [(K_SUP, "Kim Supervisor", "supervisor", "kidapawan"),
+               (D_SUP, "Dan Supervisor", "supervisor", "davao")]
+
 
 def make_staff() -> dict[str, User]:
     from shop.models import RecordId
@@ -61,6 +68,16 @@ class ApiTestCase(TestCase):
         super().setUp()
         self.staff = make_staff()
         self._clients = {}
+
+    def add_supervisors(self) -> None:
+        from shop.models import RecordId
+
+        for user_id, name, role, branch in SUPERVISORS:
+            user = User(id=user_id, name=name, role=role, home_branch=branch)
+            user.set_password(PIN)
+            user.save()
+            RecordId.objects.get_or_create(id=user_id, defaults={"kind": "user"})
+            self.staff[user_id] = user
 
     def api(self, user_id: str) -> APIClient:
         if user_id not in self._clients:

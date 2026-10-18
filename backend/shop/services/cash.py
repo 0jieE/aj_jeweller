@@ -31,7 +31,7 @@ from ..errors import NotFound, Refusal
 from ..ids import claim, new_id
 from ..models import Branch, CashEntry
 from ..text import peso
-from .base import MOVE_CASH, Ctx, branch_for_write, change, get_branch, require_branch, require_role, write_log
+from .base import BRANCH_MANAGERS, Ctx, branch_for_write, change, get_branch, require_branch, require_role, write_log
 
 _SIGNED = Case(
     When(type__in=list(CREDIT_TYPES), then=F("amount_centavos")),
@@ -125,7 +125,7 @@ def record_entry(ctx: Ctx, *, branch_id: str | None, type: str, account: str, am
                  category: str | None = None, when: datetime | None = None, entry_id: str | None = None) -> CashEntry:
     """A hand-typed cash in, expense or withdrawal. Transfers go through
     `record_transfer` so both halves stay matched."""
-    require_role(ctx, MOVE_CASH, "record cash entries")
+    require_role(ctx, BRANCH_MANAGERS, "record cash entries")
     branch = branch_for_write(ctx, branch_id)
     if type not in MANUAL_TYPES:
         raise Refusal("Transfers must go through a transfer so both sides stay matched", code="use_transfer")
@@ -153,7 +153,7 @@ def record_transfer(ctx: Ctx, *, from_branch: str | None, to_branch: str, from_a
                     pair_id: str | None = None) -> tuple[CashEntry, CashEntry]:
     """Moves money as one matched pair: a transferOut and a transferIn sharing
     a pair id, so the two sides can never drift apart."""
-    require_role(ctx, MOVE_CASH, "move cash")
+    require_role(ctx, BRANCH_MANAGERS, "move cash between accounts or branches")
     if ctx.is_supervisor:
         # A Supervisor moves money where their own branch is one end — into it
         # or out of it — and nowhere else.
@@ -209,7 +209,7 @@ def group_of(entry: CashEntry) -> list[CashEntry]:
 
 
 def _check_editable(ctx: Ctx, entry: CashEntry, doing: str) -> list[CashEntry]:
-    require_role(ctx, MOVE_CASH, doing)
+    require_role(ctx, BRANCH_MANAGERS, doing)
     lock = lock_reason(entry)
     if lock:
         raise Refusal(lock, code="linked_entry", linked_record_id=entry.linked_record_id,

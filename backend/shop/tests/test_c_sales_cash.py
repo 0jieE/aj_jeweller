@@ -6,7 +6,7 @@ from shop.enums import CashAccount
 from shop.models import Branch, CashEntry, Item, Sale
 from shop.services import cash
 
-from .helpers import ARNEL, BEN, GRACE, JOEL, PAOLO, RHEA, ApiTestCase
+from .helpers import ARNEL, BEN, D_SUP, GRACE, JOEL, K_SUP, PAOLO, RHEA, ApiTestCase
 
 
 def balance(branch, account) -> int:
@@ -138,13 +138,12 @@ class SaleTests(SaleFlowMixin, ApiTestCase):
         self.assertEqual(self.refusal(self.order([davao["id"]], by=ARNEL, expect=None)),
                          "Every piece in an order has to come from the same branch")
 
-    def test_roles_and_branches(self):
+    def test_counter_work_is_shared_but_stays_inside_the_branch(self):
         item = self.goods()
-        self.refusal(self.order([item["id"]], by=GRACE, expect=None), 403)
-        self.refusal(self.order([item["id"]], by=PAOLO, expect=None), 403)
-        sale = self.order([item["id"]]).data
-        self.refusal(self.pay(sale["id"], cash_c=900000, by=RHEA, expect=None), 403)
-        self.refusal(self.pay(sale["id"], cash_c=900000, by=BEN, expect=None), 403)
+        self.refusal(self.order([item["id"]], by=PAOLO, expect=None), 403)  # Davao staff, Kidapawan piece
+        sale = self.order([item["id"]], by=GRACE).data  # a Cashier may build an order
+        self.refusal(self.pay(sale["id"], cash_c=900000, by=BEN, expect=None), 403)  # the other branch
+        self.pay(sale["id"], cash_c=900000, by=RHEA)  # a Sales Rep may take the payment
 
     def test_a_customer_history_spans_both_directions_of_trade(self):
         batch = self.purchase(customer="Two-way Tina").data
@@ -186,14 +185,18 @@ class CartHoldTests(SaleFlowMixin, ApiTestCase):
 
 
 class CashLedgerTests(ApiTestCase):
+    """The cash ledger belongs to whoever runs the branch: Kim (Kidapawan
+    Supervisor), Dan (Davao Supervisor), and Arnel (Admin) at both."""
+
     def setUp(self):
         super().setUp()
+        self.add_supervisors()
         Branch.objects.filter(pk="kidapawan").update(
             starting_purchase_cash_centavos=159840300, starting_sales_cash_centavos=0, starting_bank_centavos=25850000)
         Branch.objects.filter(pk="davao").update(
             starting_purchase_cash_centavos=128776900, starting_bank_centavos=18420000)
 
-    def entry(self, *, by=GRACE, branch="kidapawan", type="cashIn", account="purchase", amount=500000, note="Owner capital",
+    def entry(self, *, by=K_SUP, branch="kidapawan", type="cashIn", account="purchase", amount=500000, note="Owner capital",
               category=None, expect=201):
         body = {"branch": branch, "type": type, "account": account, "amount_centavos": amount, "note": note}
         if category is not None:
@@ -209,8 +212,8 @@ class CashLedgerTests(ApiTestCase):
     def test_cash_in_raises_and_expense_and_withdrawal_lower_the_balance(self):
         self.entry(amount=500000)
         self.assertEqual(balance("kidapawan", "purchase"), 159840300 + 500000)
-        self.entry(by=BEN, branch="davao", type="expense", amount=200000, note="Electricity", category="Utilities")
-        self.entry(by=BEN, branch="davao", type="withdrawal", amount=100000, note="Owner withdrawal")
+        self.entry(by=D_SUP, branch="davao", type="expense", amount=200000, note="Electricity", category="Utilities")
+        self.entry(by=D_SUP, branch="davao", type="withdrawal", amount=100000, note="Owner withdrawal")
         self.assertEqual(balance("davao", "purchase"), 128776900 - 300000)
         self.assertEqual(self.last_log().action, "cashEntryRecorded")
 
@@ -272,13 +275,13 @@ class CashLedgerTests(ApiTestCase):
                   expect=200)
         check()
         self.transfer(to_account="bank", amount=123456)
-        self.entry(by=BEN, branch="davao", type="expense", account="bank", amount=1500, note="Bank charges",
+        self.entry(by=D_SUP, branch="davao", type="expense", account="bank", amount=1500, note="Bank charges",
                    category="Other")
         check()
         manual = self.entry(amount=777).data
-        self.patch(GRACE, f"/cash/entries/{manual['id']}", {"amount_centavos": 999, "account": "sales"}, expect=200)
+        self.patch(K_SUP, f"/cash/entries/{manual['id']}", {"amount_centavos": 999, "account": "sales"}, expect=200)
         check()
-        self.delete(GRACE, f"/cash/entries/{manual['id']}", {"reason": "typo"}, expect=204)
+        self.delete(K_SUP, f"/cash/entries/{manual['id']}", {"reason": "typo"}, expect=204)
         check()
         # No stored balance anywhere: the branch row holds only opening figures.
         branch_columns = {f.name for f in Branch._meta.get_fields()}
@@ -288,16 +291,16 @@ class CashLedgerTests(ApiTestCase):
     def test_a_linked_entry_cannot_be_edited_or_deleted_but_a_manual_one_can(self):
         batch = self.purchase().data
         linked = self.release(batch["id"]).data["cash_entry"]
-        message = self.refusal(self.patch(GRACE, f"/cash/entries/{linked['id']}", {"amount_centavos": 1}))
+        message = self.refusal(self.patch(K_SUP, f"/cash/entries/{linked['id']}", {"amount_centavos": 1}))
         self.assertEqual(message, f"This entry was written by a purchase ({batch['id']}). "
                                   "Correct it on that record, not in the cash history.")
-        self.refusal(self.delete(GRACE, f"/cash/entries/{linked['id']}"))
+        self.refusal(self.delete(K_SUP, f"/cash/entries/{linked['id']}"))
         self.assertTrue(CashEntry.objects.filter(pk=linked["id"]).exists())
 
         before = balance("davao", "purchase")
-        manual = self.entry(by=BEN, branch="davao", type="expense", amount=500000, note="Electric bill",
+        manual = self.entry(by=D_SUP, branch="davao", type="expense", amount=500000, note="Electric bill",
                             category="Utilities").data
-        response = self.patch(BEN, f"/cash/entries/{manual['id']}",
+        response = self.patch(D_SUP, f"/cash/entries/{manual['id']}",
                               {"amount_centavos": 50000, "note": "Electric bill (typo fixed)"}, expect=200).data
         self.assertEqual({c["field"] for c in response["changes"]}, {"Amount", "Note"})
         self.assertEqual(balance("davao", "purchase"), before - 50000)
@@ -305,7 +308,7 @@ class CashLedgerTests(ApiTestCase):
         self.assertEqual((log.action, log.record_id), ("cashEntryEdited", manual["id"]))
         self.assertIn("5,000", next(c for c in log.changes if c["field"] == "Amount")["before"])
 
-        self.delete(BEN, f"/cash/entries/{manual['id']}", {"reason": "entered twice"}, expect=204)
+        self.delete(D_SUP, f"/cash/entries/{manual['id']}", {"reason": "entered twice"}, expect=204)
         self.assertEqual(balance("davao", "purchase"), before)
         log = self.last_log()
         self.assertEqual(log.action, "cashEntryDeleted")
@@ -326,19 +329,19 @@ class CashLedgerTests(ApiTestCase):
         self.assertEqual((balance("kidapawan", "purchase"), balance("davao", "bank")), (kid, dav_bank))
 
     def test_moving_an_entry_to_another_pot_moves_the_money_and_type_change_drops_category(self):
-        manual = self.entry(by=BEN, branch="davao", type="expense", amount=500000, note="Bill",
+        manual = self.entry(by=D_SUP, branch="davao", type="expense", amount=500000, note="Bill",
                             category="Utilities").data
         float_before, sales_before = balance("davao", "purchase"), balance("davao", "sales")
-        self.patch(BEN, f"/cash/entries/{manual['id']}", {"account": "sales"}, expect=200)
+        self.patch(D_SUP, f"/cash/entries/{manual['id']}", {"account": "sales"}, expect=200)
         self.assertEqual(balance("davao", "purchase"), float_before + 500000)
         self.assertEqual(balance("davao", "sales"), sales_before - 500000)
-        self.patch(BEN, f"/cash/entries/{manual['id']}", {"type": "withdrawal"}, expect=200)
+        self.patch(D_SUP, f"/cash/entries/{manual['id']}", {"type": "withdrawal"}, expect=200)
         updated = CashEntry.objects.get(pk=manual["id"])
         self.assertEqual((updated.type, updated.category), ("withdrawal", None))
 
     def test_cash_roles_and_branches(self):
         self.refusal(self.entry(by=RHEA, expect=None), 403)
-        self.refusal(self.entry(by=BEN, branch="kidapawan", expect=None), 403)
+        self.refusal(self.entry(by=D_SUP, branch="kidapawan", expect=None), 403)
         self.refusal(self.transfer(by=JOEL, expect=None), 403)
         manual = self.entry().data
-        self.refusal(self.delete(BEN, f"/cash/entries/{manual['id']}"), 403)
+        self.refusal(self.delete(D_SUP, f"/cash/entries/{manual['id']}"), 403)

@@ -76,7 +76,7 @@ class SupervisorBranchWorkTests(RolesTestCase):
     def test_and_is_refused_every_one_of_those_at_the_other_branch(self):
         self.refusal(self.post(K_SUP, "/cash/entries", {"branch": "davao", "type": "cashIn", "amount_centavos": 5,
                                                         "note": "x"}), 403)
-        davao_entry = self.post(BEN, "/cash/entries", {"type": "cashIn", "amount_centavos": 5, "note": "x"},
+        davao_entry = self.post(D_SUP, "/cash/entries", {"type": "cashIn", "amount_centavos": 5, "note": "x"},
                                 expect=201).data
         self.refusal(self.patch(K_SUP, f"/cash/entries/{davao_entry['id']}", {"amount_centavos": 6}), 403)
         self.refusal(self.delete(K_SUP, f"/cash/entries/{davao_entry['id']}"), 403)
@@ -115,10 +115,11 @@ class SupervisorBranchWorkTests(RolesTestCase):
                                                     "gross_amount_centavos": 1, "commitment_id": company["id"]}),
                      403)
 
-    def test_a_supervisor_still_does_not_encode_purchases_or_build_sales(self):
-        self.refusal(self.purchase(by=K_SUP, expect=None), 403)
+    def test_a_supervisor_also_does_counter_work_at_their_branch(self):
+        self.purchase(by=K_SUP)
         item = self.released_item()
-        self.refusal(self.post(K_SUP, f"/items/{item['id']}/reserve"), 403)
+        self.post(K_SUP, f"/items/{item['id']}/reserve", expect=200)
+        self.refusal(self.purchase(by=K_SUP, branch="davao", expect=None), 403)
 
 
 class RatesForEveryoneTests(RolesTestCase):

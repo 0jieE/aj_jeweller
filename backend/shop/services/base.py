@@ -70,18 +70,30 @@ class Ctx:
 # holds the Superuser too. A Supervisor's sets are additionally scoped to their
 # home_branch by require_branch / branch_for_write wherever they are used.
 _BOTH = {Role.ADMIN, Role.SUPERUSER}
-ENCODE_PURCHASES = frozenset({Role.ASSISTANT_APPRAISER, *_BOTH})
-BUILD_SALES = frozenset({Role.SALES_REP, *_BOTH})
-MOVE_CASH = frozenset({Role.CASHIER, Role.SUPERVISOR, *_BOTH})
-# Running a branch: corrections, partition returns, disposal, the branch's
-# loans, its counter staff.
+
+# Counter work is shared by everybody. When the Cashier is out, the Appraiser
+# or the Sales Rep carries on: a role says what someone is normally
+# responsible for and who is notified, not what they may do. Every record
+# names whoever actually did the work, so covering for a colleague shows in
+# the log. Branch scoping still applies: anyone may do counter work, but only
+# at their own branch (an Admin or Superuser at either).
+COUNTER_STAFF = frozenset(Role)
+# The three counter jobs keep their own names, so each call site says what the
+# action is — and narrowing one again is a one-line change here.
+ENCODE_PURCHASES = COUNTER_STAFF  # encode, correct and resubmit a purchase
+BUILD_SALES = COUNTER_STAFF  # build, resubmit and hold pieces for an order
+MOVE_CASH = COUNTER_STAFF  # release cash to a customer, receive payment, return either for correction
+
+# Running a branch is not shared: the cash ledger (the shop's own money moved
+# and accounted for), corrections, partition returns, disposal, the branch's
+# loans and its counter staff. A Supervisor at their own branch; an Admin or
+# Superuser at both.
 BRANCH_MANAGERS = frozenset({Role.SUPERVISOR, *_BOTH})
 ADMIN_ONLY = frozenset(_BOTH)
 
+# What a refusal says. A set that admits every role never refuses, so it has
+# no sentence here.
 _ROLE_WORDS = {
-    ENCODE_PURCHASES: "an Assistant Appraiser or Admin",
-    BUILD_SALES: "a Sales Rep or Admin",
-    MOVE_CASH: "a Cashier, Supervisor or Admin",
     BRANCH_MANAGERS: "a Supervisor or Admin",
     ADMIN_ONLY: "an Admin",
 }
@@ -90,10 +102,16 @@ _ROLE_WORDS = {
 def require_role(ctx: Ctx, roles: frozenset, doing: str) -> None:
     """Refuses with 403 unless the actor holds one of `roles`.
 
-    `doing` completes the sentence "Only a Cashier or Admin can ...".
+    `doing` completes the sentence "Only a Supervisor or Admin can ...".
+    Against COUNTER_STAFF this always passes; the call stays so the action
+    is labelled at its call site.
     """
-    if ctx.actor.role not in roles:
-        raise Forbidden(f"Only {_ROLE_WORDS[roles]} can {doing}", code="role")
+    if ctx.actor.role in roles:
+        return
+    words = _ROLE_WORDS.get(roles)
+    if words is None:  # a narrowed set without its own sentence yet
+        raise Forbidden(f"You can't {doing}", code="role")
+    raise Forbidden(f"Only {words} can {doing}", code="role")
 
 
 def require_branch(ctx: Ctx, branch_id: str | None) -> None:

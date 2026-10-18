@@ -30,7 +30,7 @@ from shop.models import (
 )
 from shop.services import cash
 
-from .helpers import API, ARNEL, BEN, GRACE, LIZA, RHEA, ApiTestCase, png_b64
+from .helpers import API, ARNEL, BEN, GRACE, K_SUP, LIZA, RHEA, ApiTestCase, png_b64
 
 FIXTURE = Path(__file__).parent / "fixtures" / "app_demo_snapshot.json"
 
@@ -295,8 +295,7 @@ class OutboxTests(ApiTestCase):
         result = self.push(GRACE, [
             {"key": "k1", "method": "POST", "path": f"sales/{sale['id']}/complete",
              "body": {"cash_centavos": 900000, "bank_centavos": 0}},
-            {"key": "k2", "method": "POST", "path": "cash/entries",
-             "body": {"type": "cashIn", "amount_centavos": 5000, "note": "Float top-up"}},
+            {"key": "k2", "method": "POST", "path": "customers", "body": {"name": "Walk-in Wendy"}},
         ])
         refused, applied = result["results"]
         self.assertEqual(refused["status"], 422)
@@ -328,31 +327,35 @@ class OutboxTests(ApiTestCase):
 
 
 class IdempotencyTests(ApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.add_supervisors()  # the cash ledger is a Supervisor's
+
     def test_a_replayed_key_returns_the_first_result(self):
         body = {"type": "cashIn", "amount_centavos": 5000, "note": "Float"}
-        first = self.post(GRACE, "/cash/entries", body, expect=201, **{"Idempotency-Key": "abc"})
-        again = self.post(GRACE, "/cash/entries", body, expect=201, **{"Idempotency-Key": "abc"})
+        first = self.post(K_SUP, "/cash/entries", body, expect=201, **{"Idempotency-Key": "abc"})
+        again = self.post(K_SUP, "/cash/entries", body, expect=201, **{"Idempotency-Key": "abc"})
         self.assertEqual(again["Idempotent-Replayed"], "true")
         self.assertEqual(again.data["id"], first.data["id"])
         self.assertEqual(CashEntry.objects.count(), 1)
 
     def test_a_refusal_is_remembered_too(self):
         body = {"type": "cashIn", "amount_centavos": 0, "note": "Float"}
-        self.post(GRACE, "/cash/entries", body, expect=422, **{"Idempotency-Key": "no"})
-        again = self.post(GRACE, "/cash/entries", body, expect=422, **{"Idempotency-Key": "no"})
+        self.post(K_SUP, "/cash/entries", body, expect=422, **{"Idempotency-Key": "no"})
+        again = self.post(K_SUP, "/cash/entries", body, expect=422, **{"Idempotency-Key": "no"})
         self.assertEqual(again["Idempotent-Replayed"], "true")
 
     def test_reusing_a_key_for_a_different_request_is_refused(self):
-        self.post(GRACE, "/cash/entries", {"type": "cashIn", "amount_centavos": 5000, "note": "A"}, expect=201,
+        self.post(K_SUP, "/cash/entries", {"type": "cashIn", "amount_centavos": 5000, "note": "A"}, expect=201,
                   **{"Idempotency-Key": "same"})
-        response = self.post(GRACE, "/cash/entries", {"type": "cashIn", "amount_centavos": 7000, "note": "B"},
+        response = self.post(K_SUP, "/cash/entries", {"type": "cashIn", "amount_centavos": 7000, "note": "B"},
                              **{"Idempotency-Key": "same"})
         self.assertEqual(self.refusal(response), "That Idempotency-Key was already used for a different request")
         self.assertEqual(CashEntry.objects.count(), 1)
 
     def test_keys_belong_to_the_person_who_sent_them(self):
         body = {"type": "cashIn", "amount_centavos": 5000, "note": "Float", "branch": "kidapawan"}
-        self.post(GRACE, "/cash/entries", body, expect=201, **{"Idempotency-Key": "shared"})
+        self.post(K_SUP, "/cash/entries", body, expect=201, **{"Idempotency-Key": "shared"})
         self.post(ARNEL, "/cash/entries", body, expect=201, **{"Idempotency-Key": "shared"})
         self.assertEqual(CashEntry.objects.count(), 2)
 
