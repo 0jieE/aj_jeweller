@@ -152,6 +152,9 @@ class _SessionGateState extends State<_SessionGate> {
         final attach = attachPushNotifications(push);
         await sync.syncNow();
         await attach;
+        // The sync may have brought a different version of this person — a
+        // new role, a new branch. Take it, and keep it for the next launch.
+        session.updateUser(appState.refreshSignedInUser());
       });
     }
     return const AppShell();

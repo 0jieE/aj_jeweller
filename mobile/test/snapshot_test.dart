@@ -22,6 +22,21 @@ AppRepository _restart(AppRepository repo) {
 }
 
 void main() {
+  test('a shop with no Admin — a Superuser and Supervisors — keeps its staff', () {
+    // The guard here once asked for an active Admin, so a server whose
+    // owner had become a Superuser had its whole staff list thrown away and
+    // the phone went on showing the people it shipped with.
+    final source = AppRepository();
+    final owner = source.users.firstWhere((u) => u.role == AppUserRole.admin);
+    source.updateUser(owner.id, role: AppUserRole.superuser);
+    final snapshot = source.toSnapshot();
+
+    final phone = AppRepository()..restoreSnapshot(snapshot);
+
+    expect(phone.findUser(owner.id)!.role, AppUserRole.superuser);
+    expect(phone.users.any((u) => u.role == AppUserRole.admin), isFalse);
+  });
+
   test('the demo data survives a restart unchanged', () {
     final repo = AppRepository();
     final back = _restart(repo);

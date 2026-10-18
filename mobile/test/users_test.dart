@@ -184,6 +184,21 @@ void main() {
       }
     });
 
+    test('a promotion made elsewhere reaches this phone on the next sync', () {
+      final repo = AppRepository();
+      final rep = repo.users.firstWhere((u) => u.role == AppUserRole.salesRep && u.homeBranch == BranchId.kidapawan);
+      final session = AppState(initialUser: rep, repository: repo);
+      expect(session.role.canManageCash, isFalse);
+
+      // The same person, promoted on the server and brought down by a sync.
+      repo.updateUser(rep.id, role: AppUserRole.supervisor);
+      final now = session.refreshSignedInUser();
+
+      expect(now.role, AppUserRole.supervisor);
+      expect(session.role.canManageCash, isTrue, reason: 'their new screens, without signing out');
+      expect(session.selectedBranch, BranchId.kidapawan, reason: 'still their own branch');
+    });
+
     test('a role this build has never heard of does not break the phone', () {
       // A server updated before the shop's phones: the staff list still
       // loads, and the server remains the judge of what they may do.

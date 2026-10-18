@@ -235,7 +235,10 @@ class AppRepository extends ChangeNotifier {
     _customers = customers;
     _logs = logs;
     // Older saves had no staff section; keep the current staff for those.
-    if (users.any((u) => u.active && u.role == AppUserRole.admin)) {
+    // Anything else is the shop's staff as the server knows them, whatever
+    // roles they hold — asking for an Admin here once meant a shop run by a
+    // Superuser and Supervisors had its staff list quietly ignored.
+    if (users.isNotEmpty) {
       _users = users;
       _syncUsers();
     }
@@ -413,12 +416,14 @@ class AppRepository extends ChangeNotifier {
   }
 
   static void _checkBranchForRole(AppUserRole role, BranchId? branch) {
-    if (role != AppUserRole.admin && branch == null) {
+    if (!role.runsTheShop && branch == null) {
       throw ArgumentError('A ${role.label} works from one branch — pick it');
     }
   }
 
-  int get _activeAdminCount => _users.where((u) => u.active && u.role == AppUserRole.admin).length;
+  /// How many people oversee the whole shop — an Admin or a Superuser. The
+  /// shop must never be left without one, or nobody can appoint anybody.
+  int get _activeAdminCount => _users.where((u) => u.active && u.role.runsTheShop).length;
 
   /// How many records name [userId] — purchases, sales, cash, rates, logs.
   int userActivityCount(String userId) {
@@ -446,7 +451,7 @@ class AppRepository extends ChangeNotifier {
       id: 'USR-${_newId()}',
       name: name.trim(),
       role: role,
-      homeBranch: role == AppUserRole.admin ? null : homeBranch,
+      homeBranch: role.runsTheShop ? null : homeBranch,
       contactNumber: _blankOrNull(contactNumber),
     );
     _users.add(user);
@@ -491,7 +496,7 @@ class AppRepository extends ChangeNotifier {
     final old = _users[idx];
     final newName = name?.trim() ?? old.name;
     final newRole = role ?? old.role;
-    final newBranch = newRole == AppUserRole.admin ? null : (homeBranch ?? old.homeBranch);
+    final newBranch = newRole.runsTheShop ? null : (homeBranch ?? old.homeBranch);
     final newContact = contactNumber == null ? old.contactNumber : _blankOrNull(contactNumber);
 
     if (newName != old.name) {
@@ -499,8 +504,8 @@ class AppRepository extends ChangeNotifier {
       if (problem != null) throw ArgumentError(problem);
     }
     _checkBranchForRole(newRole, newBranch);
-    if (old.active && old.role == AppUserRole.admin && newRole != AppUserRole.admin && _activeAdminCount <= 1) {
-      throw StateError('${old.name} is the only active Admin — make someone else Admin first');
+    if (old.active && old.role.runsTheShop && !newRole.runsTheShop && _activeAdminCount <= 1) {
+      throw StateError('${old.name} is the only person overseeing the shop — make someone else an Admin first');
     }
 
     final changes = <FieldChange>[
@@ -561,8 +566,8 @@ class AppRepository extends ChangeNotifier {
       if (actor != null && actor.id == id) {
         throw StateError('You can\'t deactivate yourself — switch to another Admin first');
       }
-      if (old.role == AppUserRole.admin && _activeAdminCount <= 1) {
-        throw StateError('${old.name} is the only active Admin — the shop needs at least one');
+      if (old.role.runsTheShop && _activeAdminCount <= 1) {
+        throw StateError('${old.name} is the only person overseeing the shop — it needs at least one');
       }
     }
     _users[idx] = old.copyWith(active: active);
@@ -590,8 +595,8 @@ class AppRepository extends ChangeNotifier {
     final user = findUser(id);
     if (user == null) return 'User not found';
     if (actor != null && actor.id == id) return 'You can\'t delete yourself';
-    if (user.active && user.role == AppUserRole.admin && _activeAdminCount <= 1) {
-      return '${user.name} is the only active Admin';
+    if (user.active && user.role.runsTheShop && _activeAdminCount <= 1) {
+      return '${user.name} is the only person overseeing the shop';
     }
     final count = userActivityCount(id);
     if (count > 0) {

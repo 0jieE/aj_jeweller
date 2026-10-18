@@ -6,14 +6,13 @@ import '../models/app_user.dart';
 import '../models/branch.dart';
 import '../models/user_role.dart';
 
-/// App-level session state: who is using the app, and which branch they are
-/// looking at.
+/// Who is using the app, and which branch they are looking at.
 ///
-/// This is the prototype's entire stand-in for authentication — picking a
-/// person in the app bar stands in for signing in as them. A real sign-in
-/// flow should only ever need to replace how [currentUser] gets set here;
-/// every screen reads the user, their role, and the branch through this one
-/// class.
+/// Who it is comes from signing in with a PIN; every screen reads the person,
+/// their role and the branch through this one class. The role here is only
+/// what the app offers — the server decides what it actually allows — so it
+/// has to follow a promotion or a demotion rather than holding yesterday's
+/// answer until the next sign-in.
 class AppState extends ChangeNotifier {
   AppUser _user;
   BranchId? _selectedBranch;
@@ -55,11 +54,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Takes the signed-in person's record as the shop now has it — after a
+  /// sync has brought the server's version, or after an edit on this phone.
+  /// A role changed elsewhere reaches this phone here, so someone made a
+  /// Supervisor this morning is not still offered yesterday's screens.
+  ///
+  /// Returns the person as they now stand, so the session can save them.
+  AppUser refreshSignedInUser() {
+    syncWithStaff();
+    return _user;
+  }
+
   /// Keeps the session in step with the staff records: picks up edits to the
   /// current person, and moves off them if they are deactivated or deleted.
   void syncWithStaff() {
-    final latest = StaffDirectory.byId(_user.id);
+    final latest = repository?.findUser(_user.id) ?? StaffDirectory.byId(_user.id);
     if (latest == null || !latest.active) {
+      // Nothing to stand on: with a server, signing out is the right answer
+      // and the next request would be refused anyway. Without one — the
+      // local build and the tests — fall back to the shop's Admin.
+      if (repository != null) return;
       _user = StaffDirectory.admin;
       if (!_user.role.canViewAllBranches && _selectedBranch == null) {
         _selectedBranch = _user.homeBranch ?? BranchId.kidapawan;
