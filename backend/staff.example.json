@@ -1,0 +1,9 @@
+[
+  {"id": "USR-AJ01", "name": "Owner's full name", "role": "admin"},
+  {"id": "USR-K-CSH", "name": "Kidapawan cashier's name", "role": "cashier", "home_branch": "kidapawan", "contact_number": "0917 000 0000"},
+  {"id": "USR-K-APR", "name": "Kidapawan appraiser's name", "role": "assistantAppraiser", "home_branch": "kidapawan"},
+  {"id": "USR-K-REP", "name": "Kidapawan sales rep's name", "role": "salesRep", "home_branch": "kidapawan"},
+  {"id": "USR-D-CSH", "name": "Davao cashier's name", "role": "cashier", "home_branch": "davao"},
+  {"id": "USR-D-APR", "name": "Davao appraiser's name", "role": "assistantAppraiser", "home_branch": "davao"},
+  {"id": "USR-D-REP", "name": "Davao sales rep's name", "role": "salesRep", "home_branch": "davao"}
+]

@@ -21,17 +21,15 @@ yet synced with it.
 
 ## Pointing the app at a server
 
-The base URL is decided at build time by
-[lib/core/api/api_config.dart](lib/core/api/api_config.dart):
+[lib/core/api/api_config.dart](lib/core/api/api_config.dart) holds the shop's
+server, and a build with no arguments uses it:
 
-| Build | Server it talks to |
-| --- | --- |
-| Android emulator | `http://10.0.2.2:8000/api/v1/` (the host machine's `localhost`) |
-| Web / desktop | `http://localhost:8000/api/v1/` |
-| Anything else | pass it in |
+```
+https://aj-jeweller.onrender.com/api/v1/
+```
 
-To point a build somewhere else — a laptop on the shop's Wi-Fi, or the real
-server — pass the URL in:
+That is what the counter should be running. To point a build somewhere else —
+a laptop on the shop's Wi-Fi, a staging server — pass the URL in:
 
 ```
 flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000/api/v1
@@ -41,6 +39,11 @@ flutter build apk --release --dart-define=API_BASE_URL=https://aj.example.com/ap
 A trailing slash is optional. The URL in use is printed at the bottom of the
 Sync page and on the sign-in screen when the server cannot be reached, so a
 phone in the shop can be checked without a cable.
+
+The shop's server is on Render's free plan while it is being tried out, which
+sleeps after about fifteen minutes idle: the first request of the morning
+wakes it and can take a minute, so the sign-in screen may say it cannot reach
+the server and work on the second try.
 
 The server must be reachable over plain HTTP only for local work; Android
 release builds allow cleartext to the LAN, so a production deployment should

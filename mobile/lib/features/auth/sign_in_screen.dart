@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -104,7 +106,7 @@ class _SignInScreenState extends State<SignInScreen> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const Padding(
                   padding: EdgeInsets.all(AppSpacing.xl),
-                  child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                  child: _WakingServer(),
                 );
               }
               if (snapshot.hasError) return _cannotReach(snapshot.error!);
@@ -329,6 +331,54 @@ class _Keypad extends StatelessWidget {
             key('', onTap: onSubmit, icon: busy ? Icons.hourglass_top_rounded : Icons.arrow_forward_rounded),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// Waiting for the staff list. A server that has been idle takes a while to
+/// wake, and silence for that long reads as broken — so after a few seconds
+/// it says what it is waiting for.
+class _WakingServer extends StatefulWidget {
+  const _WakingServer();
+
+  @override
+  State<_WakingServer> createState() => _WakingServerState();
+}
+
+class _WakingServerState extends State<_WakingServer> {
+  bool _slow = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _slow = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(color: Colors.white),
+        if (_slow) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            "Waking the shop's server. The first time each day this can take "
+            'up to a minute.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
+          ),
+        ],
       ],
     );
   }

@@ -398,11 +398,7 @@ string. Then set these environment variables on the web service:
 
 `DJANGO_ALLOWED_HOSTS` and the CSRF origin are worked out from the hostname
 the platform assigns, and HTTPS redirect and HSTS turn themselves on there.
-Then create the first Admin from the service's shell:
-
-```bash
-python manage.py bootstrap_admin --id USR-AJ01 --name "Your Admin" --pin 1234
-```
+Then put the staff on it; see [Adding staff to a running server](#adding-staff-to-a-running-server).
 
 Two things to settle before the shop depends on it:
 
@@ -422,6 +418,41 @@ The notification retry loop is a second service (`PUSH_DELIVERY=command`
 running `send_notifications` on a schedule). Without it, anything the web
 process could not send stays pending. Compose runs it as the `notifier`
 service; on a platform, make it a cron job or a background worker.
+
+### Adding staff to a running server
+
+The first setup and every later hire use the same command, run from a machine
+that can reach the database:
+
+```bash
+cp staff.example.json staff.json        # fill in names, roles, branches, optional PINs
+DATABASE_URL="<external database url>" python manage.py create_staff --file staff.json           # dry run
+DATABASE_URL="<external database url>" python manage.py create_staff --file staff.json --apply
+curl -s https://<your-server>/api/v1/auth/staff   # every new person should appear, with has_pin: true
+```
+
+- **The file.** `staff.json` is a list of `{id, name, role, home_branch,
+  contact_number, pin}`. `home_branch` is left out for an Admin and required
+  for everyone else; `contact_number` and `pin` are optional, and the PIN
+  defaults to `1234`. The file is git-ignored because it holds PINs. Delete it
+  once the PINs are handed over.
+- **Dry run by default.** It does the whole job and rolls it back, so it shows
+  exactly what `--apply` would do.
+- **Never changes anyone already there.** Someone already on the server is
+  reported "already there" and left alone, with no rename and no new PIN.
+  Running it twice is the check that it worked. Reset a PIN from the admin site
+  or `POST /users/{id}/pin`.
+- **Bad rows are skipped, not fatal.** An unknown role, an Admin with a
+  branch, branch staff without one, a short PIN or a name already taken is
+  reported for that row. The rest are created, and the command exits non-zero.
+- **Every creation is logged.** People are created through the same service
+  as the API, one log row each. On an empty server the owner (`USR-AJ01`,
+  role `admin`) is created first, naming themself; everyone else is then
+  added by them. Keep `USR-AJ01` for the owner, so a later `/sync/import`
+  recognises them.
+- **PINs on screen once.** It prints who is on the server now, then each new
+  person's PIN once. Hand those over in person and have everyone change theirs
+  on the phone. The server does not force that change.
 
 ### Backups
 

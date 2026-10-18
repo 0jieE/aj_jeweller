@@ -7,3 +7,6 @@ staticfiles/
 
 # Production env, filled in on the server.
 .env.production
+# Staff files hold PINs (create_staff --file staff.json)
+staff.json
+*.staff.json

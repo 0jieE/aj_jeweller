@@ -1,26 +1,25 @@
-import 'package:flutter/foundation.dart';
-
-/// Where the server is, per build.
+/// Where the server is.
 ///
-/// Set at build time so a release APK never points at a laptop:
-/// `flutter build apk --dart-define=API_BASE_URL=https://api.example.com/api/v1/`.
-/// Without it, debug builds assume the Django dev server: the Android emulator
-/// reaches the host machine at 10.0.2.2, everything else at localhost.
+/// The shop's server is the default, so a build with no arguments is the one
+/// the counter should be running. Point a build somewhere else — a laptop on
+/// the shop's Wi-Fi, a staging server — at build time:
+///
+/// ```
+/// flutter run --dart-define=API_BASE_URL=http://192.168.0.107:8000/api/v1
+/// ```
 class ApiConfig {
   ApiConfig._();
 
+  /// The shop's own server.
+  static const shopServer = 'https://aj-jeweller.onrender.com/api/v1/';
+
   static const _override = String.fromEnvironment('API_BASE_URL');
 
-  static String get baseUrl {
-    if (_override.isNotEmpty) return _normalise(_override);
-    final host = (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-        ? '10.0.2.2'
-        : '192.168.0.107'; // localhost on the dev machine
-    return 'http://$host:8000/api/v1/';
-  }
+  static String get baseUrl => _normalise(_override.isEmpty ? shopServer : _override);
 
-  /// True when no server was named — the app is pointed at a dev machine.
-  static bool get isDevelopmentDefault => _override.isEmpty;
+  /// True when this build talks to somewhere other than the shop's server —
+  /// shown where it matters, so nobody mistakes a test build for the real one.
+  static bool get isPointedElsewhere => _override.isNotEmpty;
 
   static String _normalise(String url) => url.endsWith('/') ? url : '$url/';
 }

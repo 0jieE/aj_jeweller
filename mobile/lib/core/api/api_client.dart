@@ -80,7 +80,13 @@ class ApiClient {
         baseUrl = baseUrl ?? ApiConfig.baseUrl,
         accessToken = accessToken ?? (() => null);
 
-  static const _timeout = Duration(seconds: 20);
+  /// Long enough to outlast a sleeping server waking up. A shop server that
+  /// is idle overnight — a free hosting plan spins one down — takes the best
+  /// part of a minute to answer the first request of the morning, and timing
+  /// that out would tell the counter it is offline when it is not.
+  static const _timeout = Duration(
+    seconds: int.fromEnvironment('API_TIMEOUT_SECONDS', defaultValue: 75),
+  );
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {
     final clean = path.startsWith('/') ? path.substring(1) : path;
