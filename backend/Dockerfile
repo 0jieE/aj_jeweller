@@ -25,6 +25,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# The desktop app, if a build has been committed to webapp/ (manage.py
+# publish_webapp). WhiteNoise serves pre-compressed copies but does not
+# compress on the fly, so compress here; with no app committed this does
+# nothing and "/" says no app is deployed.
+ENV WEB_APP_ROOT=/app/webapp
+RUN if [ -f webapp/index.html ]; then python -m whitenoise.compress -q webapp; fi
+
 # Never run as root: a photo upload should not be able to write anywhere.
 RUN useradd --create-home --uid 10001 aj \
     && mkdir -p /app/media /app/staticfiles \

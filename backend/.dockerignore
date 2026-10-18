@@ -7,3 +7,5 @@ staticfiles/
 .git/
 .pytest_cache/
 *.sqlite3
+webapp.incoming/
+webapp.previous/

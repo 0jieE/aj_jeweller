@@ -191,6 +191,20 @@ STORAGES = {
 }
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# The desktop app: the Flutter web build, served at the site root from this
+# same origin (config/webapp.py). WEB_APP_ROOT is the directory holding its
+# index.html; unset, empty or without an index.html, "/" says no app is
+# deployed and the API carries on exactly as before.
+_web_root = env("WEB_APP_ROOT", "").strip()
+WEB_APP_ROOT = str((BASE_DIR / _web_root) if _web_root and not Path(_web_root).is_absolute() else _web_root)
+WHITENOISE_ROOT = WEB_APP_ROOT if WEB_APP_ROOT and (Path(WEB_APP_ROOT) / "index.html").is_file() else None
+
+
+def WHITENOISE_ADD_HEADERS_FUNCTION(headers, path, url):  # noqa: N802 — a setting, named as WhiteNoise reads it
+    from config.webapp import add_headers
+
+    add_headers(headers, path, url)
+
 # Local-disk media (used only when Cloudinary is not configured).
 MEDIA_URL = "/media/"
 MEDIA_ROOT = Path(env("MEDIA_ROOT", str(BASE_DIR / "media")))

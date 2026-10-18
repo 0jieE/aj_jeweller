@@ -545,6 +545,63 @@ curl -s https://<your-server>/api/v1/auth/staff   # every new person should appe
   person's PIN once. Hand those over in person and have everyone change theirs
   on the phone. The server does not force that change.
 
+### Desktop app (the Flutter web build)
+
+The server also serves the back-office desktop app, the Flutter web build that
+installs from the browser onto the shop's PC, from the **same origin** as the
+API:
+
+```
+/                       the app (index.html)
+/main.dart.js, /assets/…  its files
+/cash, /purchases/…     index.html again: the app owns its routes, so a reload on any page works
+/api/v1/  /admin/  /media/  /static/     never the app
+```
+
+On the same origin the app calls `/api/v1/` on its own host, so there is no
+CORS to configure and no server address baked into the build.
+
+**`WEB_APP_ROOT`** is the folder holding the build's `index.html`. The Docker
+image sets it to `/app/webapp`, which is `backend/webapp/` in the repository.
+When it is unset or holds no `index.html`, `/` says no desktop app is deployed
+and the API works exactly as before. A missing file (`/assets/…`,
+`/canvaskit/…`, anything with an extension) is a 404, never the app.
+
+**Deploying a new build.** The build is committed to `backend/webapp/`. Render
+builds the image from the repository, where `mobile/build/` is git-ignored and
+Flutter is never installed (it would add a 1 GB SDK to the image), so a
+committed copy is the simplest way to get the files there:
+
+```bash
+cd mobile && flutter build web --release
+cd ../backend && python manage.py publish_webapp      # copies ../mobile/build/web into webapp/
+git add webapp && git commit -m "Desktop app: <what changed>" && git push
+```
+
+- **What `publish_webapp` copies.** It leaves out debug `.symbols` files.
+  It also leaves out `canvaskit/` (37 MB of the 44 MB build) unless the build
+  loads CanvasKit from its own host. By default Flutter loads it from Google's
+  CDN, pinned to the engine version, and never reads the local copy. So a
+  release is about 7 MB in git.
+- **What the image build does.** It gzips the files once; `main.dart.js` goes
+  from 4.7 MB to 1.4 MB over the wire.
+- **What a new build doesn't need.** No migration, no restart beyond the
+  normal deploy, and no change to the shop's data. If git history ever grows
+  too large, the next step is a CI job that builds the app and publishes it;
+  nothing on the server side would change.
+
+**Caching, and why it matters.** Flutter's web build does not put content
+hashes in its file names: `main.dart.js`, `assets/AssetManifest.bin` and
+`canvaskit.wasm` keep their names from one build to the next. Caching them
+"hard" would let a shop PC run last week's app against this week's API. So:
+
+- `index.html`, `flutter_bootstrap.js`, `flutter_service_worker.js`,
+  `version.json` and `manifest.json` are `Cache-Control: no-store`. They decide
+  which version runs, and a stale service worker would stop the installed app
+  from ever updating.
+- Every other file is `no-cache`: the browser keeps it but checks each time,
+  and gets a 304 Not Modified unless a new build changed it.
+
 ### Backups
 
 The records are in the `pgdata` volume and the photos in `media`. Both need
