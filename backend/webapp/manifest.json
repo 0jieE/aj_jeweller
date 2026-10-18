@@ -3,10 +3,9 @@
     "short_name": "AJ Jeweler",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#000000",
+    "background_color": "#0F3D73",
     "theme_color": "#0F3D73",
-    "description": "AJ Jeweler — internal operations app prototype for gold buying and trading.",
-    "orientation": "portrait-primary",
+    "description": "AJ Jeweler \u2014 the counter and back office for two branches: purchases, sales, scrap disposal, loans and cash.",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +30,9 @@
             "type": "image/png",
             "purpose": "maskable"
         }
+    ],
+    "categories": [
+        "business",
+        "productivity"
     ]
 }

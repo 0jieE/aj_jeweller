@@ -125,46 +125,64 @@ class _AppShellState extends State<AppShell> {
       ],
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        // The title gives way to the switchers on a narrow phone; the bottom
-        // bar already says which tab is open, so the label is the redundant
-        // half of this row.
-        title: Text(_tabs[_index].label, overflow: TextOverflow.ellipsis),
-        titleSpacing: 16,
-        actions: const [SessionSwitchers()],
-      ),
-      body: size.usesBottomBar
-          ? body
-          : Row(
-              children: [
-                _SideNavigation(
-                  tabs: _tabs,
-                  index: _index,
-                  extended: size == WindowSize.expanded,
-                  onSelected: _select,
-                ),
-                const VerticalDivider(width: 1, thickness: 1),
-                Expanded(child: body),
-              ],
-            ),
-      bottomNavigationBar: size.usesBottomBar
-          ? NavigationBar(
-              selectedIndex: _index,
-              onDestinationSelected: _select,
-              destinations: [
-                for (final tab in _tabs)
-                  NavigationDestination(
-                    icon: Icon(tab.icon),
-                    selectedIcon: Icon(tab.selectedIcon),
-                    label: tab.label,
+    // At a desk there is a keyboard: Ctrl+1 to Ctrl+5 move between tabs, the
+    // way every desktop app with tabs behaves. A phone has no keyboard and
+    // ignores all of this.
+    return CallbackShortcuts(
+      bindings: {
+        for (var i = 0; i < _tabs.length; i++)
+          SingleActivator(_digitKeys[i], control: true): () => _select(i),
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          // The title gives way to the switchers on a narrow phone; the bottom
+          // bar already says which tab is open, so the label is the redundant
+          // half of this row.
+          title: Text(_tabs[_index].label, overflow: TextOverflow.ellipsis),
+          titleSpacing: 16,
+          actions: const [SessionSwitchers()],
+        ),
+        body: size.usesBottomBar
+            ? body
+            : Row(
+                children: [
+                  _SideNavigation(
+                    tabs: _tabs,
+                    index: _index,
+                    extended: size == WindowSize.expanded,
+                    onSelected: _select,
                   ),
-              ],
-            )
-          : null,
+                  const VerticalDivider(width: 1, thickness: 1),
+                  Expanded(child: body),
+                ],
+              ),
+        bottomNavigationBar: size.usesBottomBar
+            ? NavigationBar(
+                selectedIndex: _index,
+                onDestinationSelected: _select,
+                destinations: [
+                  for (final tab in _tabs)
+                    NavigationDestination(
+                      icon: Icon(tab.icon),
+                      selectedIcon: Icon(tab.selectedIcon),
+                      label: tab.label,
+                    ),
+                ],
+              )
+            : null,
+      ),
     );
   }
 }
+
+/// The number keys, for the tab shortcuts.
+const _digitKeys = [
+  LogicalKeyboardKey.digit1,
+  LogicalKeyboardKey.digit2,
+  LogicalKeyboardKey.digit3,
+  LogicalKeyboardKey.digit4,
+  LogicalKeyboardKey.digit5,
+];
 
 /// One tab's content, with its own history inside the pane.
 ///

@@ -91,6 +91,15 @@ class _SignInScreenState extends State<SignInScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The shop's own mark, not a name in a font: staff recognise it
+        // across a counter, and it says this is the right app before anyone
+        // reads a word.
+        Center(
+          child: ClipOval(
+            child: Image.asset('assets/icon/icon.png', width: 84, height: 84, fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
         Text('AJ Jeweler', textAlign: TextAlign.center, style: AppTextStyles.headlineLarge.copyWith(color: Colors.white)),
         const SizedBox(height: 2),
         Text(
