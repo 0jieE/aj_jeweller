@@ -378,6 +378,51 @@ Everything is in `.env.production.example`. The ones that matter:
 | `POSTGRES_PASSWORD` | Compose refuses to start without it. |
 | `FIREBASE_CREDENTIALS_HOST_FILE` | The service-account key's path **on the host**. Compose mounts it read-only; it is never in the image or the repo. Leave empty and notifications are simply off. |
 
+### On Render (or another platform that just runs the image)
+
+The image needs no start command: it migrates, collects static and serves on
+`$PORT` by itself. Set the service to **Docker**, branch `main`, root
+directory `backend/`.
+
+Create a **PostgreSQL** instance first and use its *internal* connection
+string. Then set these environment variables on the web service:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | the Postgres internal URL |
+| `DJANGO_SECRET_KEY` | `python -c "import secrets; print(secrets.token_urlsafe(50))"` |
+| `DJANGO_DEBUG` | `0` |
+| `WEB_CONCURRENCY` | `2` on a small instance — three workers do not fit in 512 MB |
+| `FIREBASE_CREDENTIALS_FILE` | path to a Secret File holding the service-account key, or leave unset for no notifications |
+| `FIREBASE_PROJECT_ID` | `aj-jeweler-notification` |
+
+`DJANGO_ALLOWED_HOSTS` and the CSRF origin are worked out from the hostname
+the platform assigns, and HTTPS redirect and HSTS turn themselves on there.
+Then create the first Admin from the service's shell:
+
+```bash
+python manage.py bootstrap_admin --id USR-AJ01 --name "Your Admin" --pin 1234
+```
+
+Two things to settle before the shop depends on it:
+
+- **Photos and receipts need a disk that survives a deploy.** The container's
+  filesystem does not: every deploy and every restart takes `media/` with it,
+  and a released purchase loses the photo of the cash being handed over —
+  which is the point of taking it. Attach a persistent disk mounted at
+  `/app/media` and set `MEDIA_ROOT=/app/media`, or move storage to S3/R2 (see
+  below). A free instance has no disk, so treat free as a trial only.
+- **A free instance sleeps.** After about fifteen minutes idle the next
+  request waits roughly a minute while it wakes. The app is offline-first, so
+  the counter keeps working and the queue goes up when the server answers —
+  but a notification waits that long too, and the phone will show "offline"
+  in the meantime.
+
+The notification retry loop is a second service (`PUSH_DELIVERY=command`
+running `send_notifications` on a schedule). Without it, anything the web
+process could not send stays pending. Compose runs it as the `notifier`
+service; on a platform, make it a cron job or a background worker.
+
 ### Backups
 
 The records are in the `pgdata` volume and the photos in `media`. Both need

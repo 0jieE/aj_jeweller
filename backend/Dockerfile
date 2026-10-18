@@ -33,10 +33,7 @@ USER aj
 
 EXPOSE 8000
 
-# Overridden by the compose file for the sender and for one-off jobs.
-CMD ["gunicorn", "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+# Migrates, collects static, then serves on $PORT — so a platform that only
+# runs the image (Render and the like) needs no start command of its own.
+# Compose overrides this for the notification sender and one-off jobs.
+CMD ["sh", "deploy/start.sh"]

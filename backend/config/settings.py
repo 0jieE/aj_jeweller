@@ -41,6 +41,24 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = [h.strip() for h in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2").split(",") if h.strip()]
 
+# A platform that assigns the hostname (Render) tells the container what it
+# ended up being called, so the first deploy does not 400 on its own URL.
+_PLATFORM_HOST = env("RENDER_EXTERNAL_HOSTNAME", "")
+if _PLATFORM_HOST and _PLATFORM_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_PLATFORM_HOST)
+
+# TLS is terminated by the platform's load balancer, which tells us what the
+# browser actually asked for. Without this Django thinks every request is
+# plain HTTP and refuses the admin's secure cookies.
+if env_bool("TRUST_PROXY_TLS", bool(_PLATFORM_HOST)):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Such a platform serves HTTPS and nothing else, so say so. On the shop's
+    # own network this stays off: there is no certificate for a LAN address,
+    # and redirecting would lock every phone out.
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
+    SECURE_HSTS_SECONDS = int(env("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
 INSTALLED_APPS = [
     "config.apps.ShopAdminConfig",  # django.contrib.admin, with the shop's sign-in
     "django.contrib.auth",
@@ -56,6 +74,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves the admin's own CSS and JS. Behind nginx these come off disk and
+    # this never runs; on a platform with nothing in front, it is the only
+    # thing that does.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     # Sessions, CSRF and messages serve the admin site only; the API signs in
     # with JWT and its views are CSRF-exempt.
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -123,6 +145,8 @@ SESSION_COOKIE_AGE = 8 * 60 * 60
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+if _PLATFORM_HOST:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_PLATFORM_HOST}")
 
 # The test suite creates staff in every test; a fast hasher keeps it quick.
 RUNNING_TESTS = "test" in sys.argv[1:2]
@@ -141,6 +165,14 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if not DEBUG
+        else "django.contrib.staticfiles.storage.StaticFilesStorage"
+    },
+}
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Photos and receipt PDFs. Local disk in development; point STORAGES at an
