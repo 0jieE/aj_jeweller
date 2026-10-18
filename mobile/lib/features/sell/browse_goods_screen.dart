@@ -10,9 +10,9 @@ import '../../core/widgets/date_range_chip.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/filter_menu_chip.dart';
 import '../../core/widgets/formatters.dart';
-import '../../core/widgets/inventory_item_tile.dart';
 import 'add_to_order_screen.dart';
 import 'returned_sales_list_screen.dart';
+import '../../core/widgets/inventory_item_card.dart';
 
 enum _SortBy { newest, weightAsc, weightDesc, priceAsc, priceDesc }
 
@@ -166,21 +166,13 @@ class _BrowseGoodsScreenState extends State<BrowseGoodsScreen> {
                   title: widget.silver ? 'No silver available to sell' : 'No sellable goods match',
                   message: 'Try clearing filters, or check the Purchase tab for inventory awaiting verification.',
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                  itemCount: goods.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final item = goods[i];
-                    return InventoryItemTile(
-                      item: item,
-                      onTap: role.canMakeSales
-                          ? () => Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => AddToOrderScreen(itemId: item.id)),
-                              )
-                          : null,
-                    );
-                  },
+              : InventoryGrid(
+                  items: goods,
+                  onTap: role.canMakeSales
+                      ? (item) => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => AddToOrderScreen(itemId: item.id)),
+                          )
+                      : null,
                 ),
         ),
       ],

@@ -9,9 +9,9 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/date_range_chip.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
-import '../../core/widgets/inventory_item_tile.dart';
 import '../../core/widgets/search_field.dart';
 import '../purchase/lot_detail_screen.dart';
+import '../../core/widgets/inventory_item_card.dart';
 
 /// Every scrap record for the current branch view — bulk lots and the
 /// partitions drawn out of them, still waiting or already disposed.
@@ -108,20 +108,12 @@ class _ScrapInventoryScreenState extends State<ScrapInventoryScreen> {
                           : 'Verified scrap purchases will accumulate here until a batch is run.')
                       : null,
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                  itemCount: scrap.length,
-                  separatorBuilder: (_, _) => const SizedBox.shrink(),
-                  itemBuilder: (context, i) {
-                    final item = scrap[i];
-                    return InventoryItemTile(
-                      item: item,
-                      showVerification: true,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: item.id)),
-                      ),
-                    );
-                  },
+              : InventoryGrid(
+                  items: scrap,
+                  showVerification: true,
+                  onTap: (item) => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: item.id)),
+                  ),
                 ),
         ),
       ],

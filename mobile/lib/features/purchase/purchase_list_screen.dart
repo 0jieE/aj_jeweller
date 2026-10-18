@@ -12,9 +12,9 @@ import '../../core/widgets/date_range_chip.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/filter_menu_chip.dart';
 import '../../core/widgets/formatters.dart';
-import '../../core/widgets/inventory_item_tile.dart';
 import '../../core/widgets/search_field.dart';
 import 'lot_detail_screen.dart';
+import '../../core/widgets/inventory_item_card.dart';
 
 /// Every encoded purchase for the current branch view, most recent first,
 /// with type / verification / date-range filters. Browsable by any role —
@@ -107,22 +107,12 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
                   icon: Icons.inventory_2_outlined,
                   title: 'No purchases match this search or filters',
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox.shrink(),
-                  itemBuilder: (context, i) {
-                    final item = items[i];
-                    return InventoryItemTile(
-                      item: item,
-                      showVerification: true,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: item.id)),
-                        );
-                      },
-                    );
-                  },
+              : InventoryGrid(
+                  items: items,
+                  showVerification: true,
+                  onTap: (item) => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: item.id)),
+                  ),
                 ),
         ),
       ],

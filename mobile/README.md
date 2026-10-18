@@ -135,7 +135,14 @@ What changes with the window, rather than with the platform
 - content stops widening at a readable width instead of running the length
   of a monitor;
 - the cash ledger shows its history and its entry form side by side, which is
-  how the ledger is actually worked — the phone shows one at a time.
+  how the ledger is actually worked — the phone shows one at a time;
+- stock is laid out as cards rather than rows — the photograph first, then
+  what it is and what it is worth. The card's width is what is fixed, not the
+  number of columns, so a phone shows two across and a monitor shows six, and
+  both read the same. Purchases, Sell and Dispose all use it
+  ([inventory_item_card.dart](lib/core/widgets/inventory_item_card.dart));
+  short queues that are worked through rather than browsed — the Dashboard's
+  "Needs Your Action" — stay as rows.
 
 The browser keeps this device's copy in **IndexedDB**
 ([local_store_web.dart](lib/core/data/local_store_web.dart)); a phone keeps it
