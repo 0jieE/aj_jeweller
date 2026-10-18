@@ -10,6 +10,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/status_badges.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import 'checkout_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The rep's working view of the deal in progress — every line's price can
 /// be renegotiated and any item pulled out, without starting the order
@@ -32,33 +33,35 @@ class OrderSummaryScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: cart.isEmpty
-          ? const EmptyState(
-              icon: Icons.shopping_bag_outlined,
-              title: 'Nothing in this order yet',
-              message: 'Browse goods and add items to start building an order.',
-            )
-          : Column(
-              children: [
-                if (cart.editingSaleId != null) _EditingBanner(note: cart.editingSaleNote),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    itemCount: cart.lines.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                    itemBuilder: (context, i) {
-                      final line = cart.lines[i];
-                      return _CartLineTile(
-                        line: line,
-                        onEditPrice: () => _editPrice(context, cart, line),
-                        onRemove: () => cart.removeLine(line.item.id),
-                      );
-                    },
+      body: FormPane(
+        child: cart.isEmpty
+            ? const EmptyState(
+                icon: Icons.shopping_bag_outlined,
+                title: 'Nothing in this order yet',
+                message: 'Browse goods and add items to start building an order.',
+              )
+            : Column(
+                children: [
+                  if (cart.editingSaleId != null) _EditingBanner(note: cart.editingSaleNote),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: cart.lines.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+                      itemBuilder: (context, i) {
+                        final line = cart.lines[i];
+                        return _CartLineTile(
+                          line: line,
+                          onEditPrice: () => _editPrice(context, cart, line),
+                          onRemove: () => cart.removeLine(line.item.id),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                _TotalBar(cart: cart),
-              ],
-            ),
+                  _TotalBar(cart: cart),
+                ],
+              ),
+      ),
     );
   }
 

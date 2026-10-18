@@ -13,6 +13,7 @@ import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import '../../core/widgets/status_badges.dart';
 import '../../core/widgets/value_display.dart';
+import '../../core/navigation/layout.dart';
 
 /// Item detail plus price entry — the rep negotiates on the spot, so nothing
 /// here is pre-filled beyond a market-rate reference.
@@ -79,103 +80,105 @@ class _AddToOrderScreenState extends State<AddToOrderScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add to Order')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.description, style: AppTextStyles.headlineMedium.copyWith(fontSize: 19)),
-                  const SizedBox(height: AppSpacing.xs),
-                  ItemStatusBadge(status: item.itemStatus),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(child: _Stat(label: 'Weight', value: AppFormat.grams(item.weightGrams))),
-                      Expanded(child: _Stat(label: item.type.isSilver ? 'Purity' : 'Karat', value: AppFormat.karat(item.karat), color: PurityPalette.of(context, item.karat).text)),
-                      Expanded(child: _Stat(label: 'Capital', value: AppFormat.peso(item.capitalAmountCentavos, whole: true))),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  const Divider(),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text('Origin', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  Text(item.origin, style: AppTextStyles.bodyLarge),
-                ],
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.description, style: AppTextStyles.headlineMedium.copyWith(fontSize: 19)),
+                    const SizedBox(height: AppSpacing.xs),
+                    ItemStatusBadge(status: item.itemStatus),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(child: _Stat(label: 'Weight', value: AppFormat.grams(item.weightGrams))),
+                        Expanded(child: _Stat(label: item.type.isSilver ? 'Purity' : 'Karat', value: AppFormat.karat(item.karat), color: PurityPalette.of(context, item.karat).text)),
+                        Expanded(child: _Stat(label: 'Capital', value: AppFormat.peso(item.capitalAmountCentavos, whole: true))),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    const Divider(),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Origin', style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(item.origin, style: AppTextStyles.bodyLarge),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (referenceAmount != null)
-            ValueDisplay(
-              label: '${AppFormat.karat(item.karat)} market reference · ${AppFormat.peso(rate!.pricePerGramCentavos)}/g',
-              value: AppFormat.peso(referenceAmount),
-              origin: FigureOrigin.derived,
-              valueColor: sc.gold,
+            const SizedBox(height: AppSpacing.md),
+            if (referenceAmount != null)
+              ValueDisplay(
+                label: '${AppFormat.karat(item.karat)} market reference · ${AppFormat.peso(rate!.pricePerGramCentavos)}/g',
+                value: AppFormat.peso(referenceAmount),
+                origin: FigureOrigin.derived,
+                valueColor: sc.gold,
+              ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Final weight (re-weighed at sale)',
+              kind: NumericInputKind.grams,
+              initialValue: _finalGrams,
+              helperText: 'Recorded at purchase as ${AppFormat.grams(item.weightGrams)}',
+              onChanged: (v) => setState(() {
+                _finalGrams = v;
+                // The weight underpins both money figures; keep the total as
+                // agreed and let the per-gram rate follow it.
+                _fromTotal();
+              }),
             ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Final weight (re-weighed at sale)',
-            kind: NumericInputKind.grams,
-            initialValue: _finalGrams,
-            helperText: 'Recorded at purchase as ${AppFormat.grams(item.weightGrams)}',
-            onChanged: (v) => setState(() {
-              _finalGrams = v;
-              // The weight underpins both money figures; keep the total as
-              // agreed and let the per-gram rate follow it.
-              _fromTotal();
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            key: _perGramKey,
-            label: 'Price per gram',
-            kind: NumericInputKind.peso,
-            initialValue: _perGramCentavos == null ? null : _perGramCentavos! / 100,
-            helperText: rate == null
-                ? null
-                : 'From Gold Rate setup — edit to quote a different rate',
-            onChanged: (v) => setState(() {
-              _perGramCentavos = v == null ? null : (v * 100).round();
-              _fromPerGram();
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            key: _priceKey,
-            label: 'Selling Price',
-            kind: NumericInputKind.peso,
-            autofocus: true,
-            initialValue: _priceCentavos == null ? null : _priceCentavos! / 100,
-            helperText: 'Edit either figure — the other follows the final weight',
-            onChanged: (v) => setState(() {
-              _priceCentavos = v == null ? null : (v * 100).round();
-              _fromTotal();
-            }),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          // Stored straight onto the item rather than the cart line: it is a
-          // photo of the piece, and the Cashier verifying this sale needs it
-          // whether or not this particular order goes through.
-          ItemPhotoField(
-            photo: item.photo,
-            onChanged: (bytes) {
-              if (bytes != null) {
-                repo.setItemPhoto(item.id, bytes, actor: context.read<AppState>().currentUser);
-              }
-            },
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: (_priceCentavos != null && _priceCentavos! > 0 && _grams > 0)
-                ? () => _addToOrder(context, cart, item)
-                : null,
-            child: const Text('Add to Order'),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              key: _perGramKey,
+              label: 'Price per gram',
+              kind: NumericInputKind.peso,
+              initialValue: _perGramCentavos == null ? null : _perGramCentavos! / 100,
+              helperText: rate == null
+                  ? null
+                  : 'From Gold Rate setup — edit to quote a different rate',
+              onChanged: (v) => setState(() {
+                _perGramCentavos = v == null ? null : (v * 100).round();
+                _fromPerGram();
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              key: _priceKey,
+              label: 'Selling Price',
+              kind: NumericInputKind.peso,
+              autofocus: true,
+              initialValue: _priceCentavos == null ? null : _priceCentavos! / 100,
+              helperText: 'Edit either figure — the other follows the final weight',
+              onChanged: (v) => setState(() {
+                _priceCentavos = v == null ? null : (v * 100).round();
+                _fromTotal();
+              }),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            // Stored straight onto the item rather than the cart line: it is a
+            // photo of the piece, and the Cashier verifying this sale needs it
+            // whether or not this particular order goes through.
+            ItemPhotoField(
+              photo: item.photo,
+              onChanged: (bytes) {
+                if (bytes != null) {
+                  repo.setItemPhoto(item.id, bytes, actor: context.read<AppState>().currentUser);
+                }
+              },
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: (_priceCentavos != null && _priceCentavos! > 0 && _grams > 0)
+                  ? () => _addToOrder(context, cart, item)
+                  : null,
+              child: const Text('Add to Order'),
+            ),
+          ],
+        ),
       ),
     );
   }

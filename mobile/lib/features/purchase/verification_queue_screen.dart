@@ -11,6 +11,7 @@ import '../../core/widgets/customer_avatar.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import 'purchase_batch_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The Cashier's work queue: purchases encoded by an Appraiser, oldest
 /// first, waiting to be checked against the physical pieces and paid for.
@@ -35,18 +36,21 @@ class VerificationQueueScreen extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      itemCount: queue.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final batch = queue[i];
-        return _BatchQueueTile(
-          batch: batch,
-          itemCount: repo.itemsInBatch(batch.id).length,
-          totalCentavos: repo.batchTotalCentavos(batch.id),
-        );
-      },
+    return ReadableWidth(
+      maxWidth: 820,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        itemCount: queue.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, i) {
+          final batch = queue[i];
+          return _BatchQueueTile(
+            batch: batch,
+            itemCount: repo.itemsInBatch(batch.id).length,
+            totalCentavos: repo.batchTotalCentavos(batch.id),
+          );
+        },
+      ),
     );
   }
 }

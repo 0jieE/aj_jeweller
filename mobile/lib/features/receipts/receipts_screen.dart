@@ -11,6 +11,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import '../../core/widgets/receipt_actions.dart';
 import '../../core/widgets/search_field.dart';
+import '../../core/navigation/layout.dart';
 
 /// Every receipt the shop has issued, newest first — the copies kept on this
 /// side of the counter.
@@ -45,33 +46,35 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Receipts')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SearchField(
-              hintText: 'Search receipts by customer or record id',
-              onChanged: (v) => setState(() => _query = v),
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: SearchField(
+                hintText: 'Search receipts by customer or record id',
+                onChanged: (v) => setState(() => _query = v),
+              ),
             ),
-          ),
-          Expanded(
-            child: receipts.isEmpty
-                ? EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: q.isEmpty ? 'No receipts issued yet' : 'No receipts match this search',
-                    message: q.isEmpty
-                        ? 'A receipt is filed here the moment a Cashier releases cash on a '
-                            'purchase or receives payment on a sale.'
-                        : null,
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                    itemCount: receipts.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) => _ReceiptTile(receipt: receipts[i]),
-                  ),
-          ),
-        ],
+            Expanded(
+              child: receipts.isEmpty
+                  ? EmptyState(
+                      icon: Icons.receipt_long_outlined,
+                      title: q.isEmpty ? 'No receipts issued yet' : 'No receipts match this search',
+                      message: q.isEmpty
+                          ? 'A receipt is filed here the moment a Cashier releases cash on a '
+                              'purchase or receives payment on a sale.'
+                          : null,
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                      itemCount: receipts.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) => _ReceiptTile(receipt: receipts[i]),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

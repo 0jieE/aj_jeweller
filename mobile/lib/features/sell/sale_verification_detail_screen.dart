@@ -14,6 +14,7 @@ import '../../core/widgets/status_badges.dart';
 import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import 'sale_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The Cashier's check screen: every line item laid out so the physical
 /// pieces can be confirmed against the order one by one, then a hard fork —
@@ -76,118 +77,120 @@ class _SaleVerificationDetailScreenState extends State<SaleVerificationDetailScr
 
     return Scaffold(
       appBar: AppBar(title: const Text('Verify Order')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    TransactionCustomerAvatar(customer: sale.customer, radius: 22),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(sale.customerName, style: AppTextStyles.headlineMedium.copyWith(fontSize: 19)),
-                    ),
-                  ],
-                ),
-                if (sale.note != null) ...[
-                  const SizedBox(height: 2),
-                  Text(sale.note!, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-                ],
-                const SizedBox(height: 2),
-                Text(
-                  '${sale.branch.label} · ${AppFormat.dateShort(sale.date)}',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('Items being released (${sale.lineItems.length})', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          for (final line in sale.lineItems) _LineItemCheckCard(line: line),
-          const SizedBox(height: AppSpacing.sm),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDim,
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Total to receive', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary)),
-                Text(
-                  AppFormat.peso(sale.totalAmountCentavos),
-                  style: AppTextStyles.numericLarge.copyWith(color: context.semanticColors.gold),
-                ),
-              ],
-            ),
-          ),
-          if (canMoveCash) ...[
-            const SizedBox(height: AppSpacing.md),
-            _PaymentSplitEntry(
-              total: sale.totalAmountCentavos,
-              payment: _payment!,
-              cashKey: _cashKey,
-              bankKey: _bankKey,
-              onCashChanged: (v) => _setCash(v, sale.totalAmountCentavos),
-              onBankChanged: (v) => _setBank(v, sale.totalAmountCentavos),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: context.semanticColors.success),
-                icon: const Icon(Icons.payments_rounded),
-                label: const Text('Receive Payment'),
-                onPressed: () => _receivePayment(context, repo, sale),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: const BorderSide(color: AppColors.danger, width: 1.4),
-                ),
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Return to Rep'),
-                onPressed: () => _returnToRep(context, repo, sale),
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: AppSpacing.md),
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      TransactionCustomerAvatar(customer: sale.customer, radius: 22),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(sale.customerName, style: AppTextStyles.headlineMedium.copyWith(fontSize: 19)),
+                      ),
+                    ],
+                  ),
+                  if (sale.note != null) ...[
+                    const SizedBox(height: 2),
+                    Text(sale.note!, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+                  ],
+                  const SizedBox(height: 2),
+                  Text(
+                    '${sale.branch.label} · ${AppFormat.dateShort(sale.date)}',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('Items being released (${sale.lineItems.length})', style: AppTextStyles.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            for (final line in sale.lineItems) _LineItemCheckCard(line: line),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
               decoration: BoxDecoration(
                 color: AppColors.surfaceDim,
                 borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'Payment is received by whoever is at the counter — sign in to take it.',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                    ),
+                  Text('Total to receive', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    AppFormat.peso(sale.totalAmountCentavos),
+                    style: AppTextStyles.numericLarge.copyWith(color: context.semanticColors.gold),
                   ),
                 ],
               ),
             ),
+            if (canMoveCash) ...[
+              const SizedBox(height: AppSpacing.md),
+              _PaymentSplitEntry(
+                total: sale.totalAmountCentavos,
+                payment: _payment!,
+                cashKey: _cashKey,
+                bankKey: _bankKey,
+                onCashChanged: (v) => _setCash(v, sale.totalAmountCentavos),
+                onBankChanged: (v) => _setBank(v, sale.totalAmountCentavos),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: context.semanticColors.success),
+                  icon: const Icon(Icons.payments_rounded),
+                  label: const Text('Receive Payment'),
+                  onPressed: () => _receivePayment(context, repo, sale),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger, width: 1.4),
+                  ),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: const Text('Return to Rep'),
+                  onPressed: () => _returnToRep(context, repo, sale),
+                ),
+              ),
+            ] else ...[
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Payment is received by whoever is at the counter — sign in to take it.',
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

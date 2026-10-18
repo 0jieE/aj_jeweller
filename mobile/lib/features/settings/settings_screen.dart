@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/widgets/coming_soon.dart';
+import '../../core/navigation/layout.dart';
 
 /// Placeholder — real settings (branch config, printer setup, etc.) arrive
 /// once this moves past prototype.
@@ -11,10 +12,12 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: const ComingSoon(
-        icon: Icons.settings_outlined,
-        title: 'Settings',
-        message: 'App configuration will live here once this moves past prototype.',
+      body: FormPane(
+        child: const ComingSoon(
+          icon: Icons.settings_outlined,
+          title: 'Settings',
+          message: 'App configuration will live here once this moves past prototype.',
+        ),
       ),
     );
   }

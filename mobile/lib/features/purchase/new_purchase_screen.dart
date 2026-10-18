@@ -15,6 +15,7 @@ import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/status_badges.dart';
 import 'purchase_batch_detail_screen.dart';
 import 'purchase_line_form_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// One counter transaction being built: who is selling, and every piece they
 /// have handed over.
@@ -60,81 +61,83 @@ class _NewPurchaseScreenState extends State<NewPurchaseScreen> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          if (branchBalance != null)
-            _CashOnHandCard(branchBalance: branchBalance, staged: basket.totalCentavos),
-          const SizedBox(height: AppSpacing.md),
-          Text('Customer', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          CustomerFields(
-            initial: basket.customer,
-            onChanged: basket.setCustomer,
-          ),
-          if (context.watch<AppState>().selectedBranch == null) ...[
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            if (branchBalance != null)
+              _CashOnHandCard(branchBalance: branchBalance, staged: basket.totalCentavos),
+            const SizedBox(height: AppSpacing.md),
+            Text('Customer', style: AppTextStyles.titleMedium),
             const SizedBox(height: AppSpacing.sm),
-            DropdownButtonFormField<BranchId>(
-              initialValue: basket.branch,
-              decoration: const InputDecoration(labelText: 'Branch'),
-              items: [
-                for (final b in BranchId.values)
-                  DropdownMenuItem(value: b, child: Text(b.label)),
-              ],
-              onChanged: basket.setBranch,
+            CustomerFields(
+              initial: basket.customer,
+              onChanged: basket.setCustomer,
             ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Items (${basket.lineCount})', style: AppTextStyles.titleMedium),
-              TextButton.icon(
-                onPressed: () => _addLine(context, basket),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Add item'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          if (basket.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDim,
-                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Text(
-                'No pieces added yet.',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-              ),
-            )
-          else
-            for (var i = 0; i < basket.lines.length; i++) ...[
-              _DraftLineCard(
-                line: basket.lines[i],
-                onEdit: () => _editLine(context, basket, i),
-                onRemove: () => basket.removeLine(i),
-              ),
+            if (context.watch<AppState>().selectedBranch == null) ...[
               const SizedBox(height: AppSpacing.sm),
+              DropdownButtonFormField<BranchId>(
+                initialValue: basket.branch,
+                decoration: const InputDecoration(labelText: 'Branch'),
+                items: [
+                  for (final b in BranchId.values)
+                    DropdownMenuItem(value: b, child: Text(b.label)),
+                ],
+                onChanged: basket.setBranch,
+              ),
             ],
-          const SizedBox(height: AppSpacing.md),
-          _TotalCard(totalCentavos: basket.totalCentavos, totalGrams: basket.totalNetGrams),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: basket.canSubmit ? () => _submit(context, basket) : null,
-            child: const Text('Submit Purchase'),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Cash is released by a Cashier once, for the whole purchase.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Items (${basket.lineCount})', style: AppTextStyles.titleMedium),
+                TextButton.icon(
+                  onPressed: () => _addLine(context, basket),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Add item'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            if (basket.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Text(
+                  'No pieces added yet.',
+                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                ),
+              )
+            else
+              for (var i = 0; i < basket.lines.length; i++) ...[
+                _DraftLineCard(
+                  line: basket.lines[i],
+                  onEdit: () => _editLine(context, basket, i),
+                  onRemove: () => basket.removeLine(i),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            const SizedBox(height: AppSpacing.md),
+            _TotalCard(totalCentavos: basket.totalCentavos, totalGrams: basket.totalNetGrams),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: basket.canSubmit ? () => _submit(context, basket) : null,
+              child: const Text('Submit Purchase'),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Cash is released by a Cashier once, for the whole purchase.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
       ),
     );
   }

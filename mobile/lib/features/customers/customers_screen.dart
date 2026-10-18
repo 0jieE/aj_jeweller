@@ -11,6 +11,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import '../../core/widgets/search_field.dart';
 import 'customer_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The customer book: everyone the shop has dealt with, on either side of the
 /// counter.
@@ -40,39 +41,41 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Customers')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SearchField(
-              hintText: 'Search customers by name or number',
-              onChanged: (v) => setState(() => _query = v),
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: SearchField(
+                hintText: 'Search customers by name or number',
+                onChanged: (v) => setState(() => _query = v),
+              ),
             ),
-          ),
-          Expanded(
-            child: customers.isEmpty
-                ? EmptyState(
-                    icon: Icons.people_outline_rounded,
-                    title: q.isEmpty ? 'No customers yet' : 'No customers match this search',
-                    message: q.isEmpty
-                        ? 'Anyone recorded on a purchase or a sale is filed here automatically.'
-                        : null,
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                    itemCount: customers.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final customer = customers[i];
-                      return _CustomerTile(
-                        customer: customer,
-                        purchaseCount: repo.purchasesByCustomer(customer.id).length,
-                        saleCount: repo.salesByCustomer(customer.id).length,
-                      );
-                    },
-                  ),
-          ),
-        ],
+            Expanded(
+              child: customers.isEmpty
+                  ? EmptyState(
+                      icon: Icons.people_outline_rounded,
+                      title: q.isEmpty ? 'No customers yet' : 'No customers match this search',
+                      message: q.isEmpty
+                          ? 'Anyone recorded on a purchase or a sale is filed here automatically.'
+                          : null,
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                      itemCount: customers.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final customer = customers[i];
+                        return _CustomerTile(
+                          customer: customer,
+                          purchaseCount: repo.purchasesByCustomer(customer.id).length,
+                          saleCount: repo.salesByCustomer(customer.id).length,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

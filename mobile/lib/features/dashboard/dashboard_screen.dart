@@ -50,55 +50,127 @@ class DashboardScreen extends StatelessWidget {
     final repo = context.watch<AppRepository>();
     final branchId = appState.selectedBranch;
 
+    Widget heading(String text, [Widget? trailing]) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(text, style: AppTextStyles.titleLarge),
+            ?trailing,
+          ],
+        );
+
+    final needsAction = _NeedsActionSection(role: appState.role, branchId: branchId);
+
+    final branchPosition = <Widget>[
+      heading('Branch Position'),
+      const SizedBox(height: AppSpacing.sm),
+      if (branchId == null)
+        Column(
+          children: [
+            for (final b in repo.branches) ...[
+              _BranchPositionCard(branch: repo.branch(b.id)),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ],
+        )
+      else
+        _BranchPositionCard(branch: repo.branch(branchId)),
+    ];
+
+    final quickEntry = <Widget>[
+      heading('Quick Entry'),
+      const SizedBox(height: AppSpacing.sm),
+      _QuickEntryGrid(role: appState.role, onNavigateToTab: onNavigateToTab),
+    ];
+
+    final rates = <Widget>[
+      heading(
+        'Gold & Silver Rates',
+        Text(
+          AppFormat.dateTimeShort(_latestRateUpdate([...repo.goldRates, ...repo.silverRates])),
+          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.sm),
+      _RateSummary(gold: repo.goldRates, silver: repo.silverRates),
+    ];
+
+    final today = <Widget>[
+      heading("Today's Activity"),
+      const SizedBox(height: AppSpacing.sm),
+      _TodaysActivityCard(branchId: branchId),
+    ];
+
+    const padding = EdgeInsets.fromLTRB(
+      AppSpacing.md,
+      AppSpacing.md,
+      AppSpacing.md,
+      AppSpacing.xl,
+    );
+
+    // A phone reads top to bottom. A desktop window is wider than it is tall,
+    // so the day's work stands on the left and the shop's position beside it,
+    // both in view at once — which is the whole reason to be at a desk.
+    if (WindowSize.of(context) == WindowSize.expanded) {
+      return RefreshIndicator(
+        onRefresh: () async {},
+        child: ReadableWidth(
+          maxWidth: 1280,
+          child: ListView(
+            padding: padding,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        needsAction,
+                        const SizedBox(height: AppSpacing.lg),
+                        ...quickEntry,
+                        const SizedBox(height: AppSpacing.lg),
+                        ...today,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ...branchPosition,
+                        const SizedBox(height: AppSpacing.lg),
+                        ...rates,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: () async {},
       child: ReadableWidth(
         child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.md,
-          AppSpacing.md,
-          AppSpacing.xl,
+          padding: padding,
+          children: [
+            needsAction,
+            const SizedBox(height: AppSpacing.lg),
+            ...branchPosition,
+            const SizedBox(height: AppSpacing.lg),
+            ...quickEntry,
+            const SizedBox(height: AppSpacing.lg),
+            ...rates,
+            const SizedBox(height: AppSpacing.lg),
+            ...today,
+          ],
         ),
-        children: [
-          _NeedsActionSection(role: appState.role, branchId: branchId),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Branch Position', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (branchId == null)
-            Column(
-              children: [
-                for (final b in repo.branches) ...[
-                  _BranchPositionCard(branch: repo.branch(b.id)),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-              ],
-            )
-          else
-            _BranchPositionCard(branch: repo.branch(branchId)),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Quick Entry', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          _QuickEntryGrid(role: appState.role, onNavigateToTab: onNavigateToTab),
-          const SizedBox(height: AppSpacing.lg),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Gold & Silver Rates', style: AppTextStyles.titleLarge),
-              Text(
-                AppFormat.dateTimeShort(_latestRateUpdate([...repo.goldRates, ...repo.silverRates])),
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _RateSummary(gold: repo.goldRates, silver: repo.silverRates),
-          const SizedBox(height: AppSpacing.lg),
-          Text("Today's Activity", style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          _TodaysActivityCard(branchId: branchId),
-        ],
-      ),
       ),
     );
   }

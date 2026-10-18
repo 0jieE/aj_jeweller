@@ -14,6 +14,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import '../purchase/purchase_batch_detail_screen.dart';
 import '../sell/sale_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// One customer and everything the shop has done with them, both directions
 /// interleaved by date.
@@ -51,82 +52,84 @@ class CustomerDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(customer.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Center(child: CustomerAvatar(name: customer.name, photo: customer.photo, radius: 48)),
-          Center(
-            child: TextButton.icon(
-              onPressed: () async {
-                final photo = await pickCustomerPhoto(context);
-                if (photo == null || !context.mounted) return;
-                repo.setCustomerPhoto(
-                  customer.id,
-                  photo,
-                  actor: context.read<AppState>().currentUser,
-                );
-              },
-              icon: const Icon(Icons.photo_camera_outlined, size: 16),
-              label: Text(customer.hasPhoto ? 'Change photo' : 'Add photo'),
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Center(child: CustomerAvatar(name: customer.name, photo: customer.photo, radius: 48)),
+            Center(
+              child: TextButton.icon(
+                onPressed: () async {
+                  final photo = await pickCustomerPhoto(context);
+                  if (photo == null || !context.mounted) return;
+                  repo.setCustomerPhoto(
+                    customer.id,
+                    photo,
+                    actor: context.read<AppState>().currentUser,
+                  );
+                },
+                icon: const Icon(Icons.photo_camera_outlined, size: 16),
+                label: Text(customer.hasPhoto ? 'Change photo' : 'Add photo'),
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _ContactCard(
-            contactNumber: customer.contactNumber,
-            address: customer.address,
-            since: customer.firstSeen,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _TotalCard(
-                  label: 'Bought from them',
-                  sublabel: '${purchases.length} purchase(s)',
-                  amountCentavos: boughtFrom,
-                  color: context.semanticColors.buyGreen,
-                  icon: Icons.south_west_rounded,
+            const SizedBox(height: AppSpacing.sm),
+            _ContactCard(
+              contactNumber: customer.contactNumber,
+              address: customer.address,
+              since: customer.firstSeen,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: _TotalCard(
+                    label: 'Bought from them',
+                    sublabel: '${purchases.length} purchase(s)',
+                    amountCentavos: boughtFrom,
+                    color: context.semanticColors.buyGreen,
+                    icon: Icons.south_west_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _TotalCard(
-                  label: 'Sold to them',
-                  sublabel: '${sales.length} sale(s)',
-                  amountCentavos: soldTo,
-                  color: context.semanticColors.sellCoral,
-                  icon: Icons.north_east_rounded,
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _TotalCard(
+                    label: 'Sold to them',
+                    sublabel: '${sales.length} sale(s)',
+                    amountCentavos: soldTo,
+                    color: context.semanticColors.sellCoral,
+                    icon: Icons.north_east_rounded,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Transaction History (${history.length})', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (history.isEmpty)
-            const EmptyState(
-              icon: Icons.history_rounded,
-              title: 'Nothing recorded yet',
-              message: 'Purchases and sales against this customer will appear here.',
-            )
-          else
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Column(
-                children: [
-                  for (var i = 0; i < history.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _HistoryTile(entry: history[i]),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Transaction History (${history.length})', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (history.isEmpty)
+              const EmptyState(
+                icon: Icons.history_rounded,
+                title: 'Nothing recorded yet',
+                message: 'Purchases and sales against this customer will appear here.',
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < history.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _HistoryTile(entry: history[i]),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
       ),
     );
   }

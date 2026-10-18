@@ -20,6 +20,7 @@ import '../../core/widgets/receipt_actions.dart';
 import '../../core/widgets/record_activity.dart';
 import '../../core/widgets/status_badges.dart';
 import 'lot_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// One purchase transaction end to end: the customer, every piece they sold,
 /// and the single cash release that settles the lot.
@@ -55,128 +56,130 @@ class PurchaseBatchDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Purchase Record')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _HeaderCard(batch: batch, total: total, itemCount: items.length),
-              const SizedBox(height: AppSpacing.sm),
-              // Encoder and releaser side by side: the control this screen
-              // exists for is that those are two different people.
-              AccountabilityCard(
-                children: [
-                  AttributionRow(
-                    icon: Icons.edit_note_rounded,
-                    label: 'Encoded by',
-                    userId: batch.submittedByUserId,
-                    at: batch.date,
-                  ),
-                  AttributionRow(
-                    icon: Icons.payments_outlined,
-                    label: 'Cash released by',
-                    userId: batch.releasedByUserId,
-                    at: batch.releasedAt,
-                    pendingText: 'Not yet released',
-                  ),
-                  if (batch.releaseProofPhoto != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.sm),
-                      child: Row(
-                        children: [
-                          ItemPhotoThumbnail(
-                            photo: batch.releaseProofPhoto!,
-                            label: 'Cash released to ${batch.customer.name}',
-                            size: 56,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'Proof of cash released — tap to enlarge.',
-                              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _HeaderCard(batch: batch, total: total, itemCount: items.length),
+                const SizedBox(height: AppSpacing.sm),
+                // Encoder and releaser side by side: the control this screen
+                // exists for is that those are two different people.
+                AccountabilityCard(
+                  children: [
+                    AttributionRow(
+                      icon: Icons.edit_note_rounded,
+                      label: 'Encoded by',
+                      userId: batch.submittedByUserId,
+                      at: batch.date,
+                    ),
+                    AttributionRow(
+                      icon: Icons.payments_outlined,
+                      label: 'Cash released by',
+                      userId: batch.releasedByUserId,
+                      at: batch.releasedAt,
+                      pendingText: 'Not yet released',
+                    ),
+                    if (batch.releaseProofPhoto != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: AppSpacing.sm),
+                        child: Row(
+                          children: [
+                            ItemPhotoThumbnail(
+                              photo: batch.releaseProofPhoto!,
+                              label: 'Cash released to ${batch.customer.name}',
+                              size: 56,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                'Proof of cash released — tap to enlarge.',
+                                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text('Items', style: AppTextStyles.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                for (final item in items) ...[
+                  _BatchItemCard(item: item),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+              ],
+            ),
+            if (batch.verificationNote != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _CorrectionNote(note: batch.verificationNote!),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            if (!awaiting)
+              ReceiptActions(
+                recordId: batch.id,
+                kind: ReceiptKind.purchase,
+                branch: batch.branch,
+                counterparty: batch.customer.name,
+                totalCentavos: total,
+                buildReceipt: () => ReceiptService.purchase(batch: batch, items: items),
+                buildText: () => ReceiptService.purchaseText(batch: batch, items: items),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'The receipt is issued once a Cashier releases the cash.',
+                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text('Items', style: AppTextStyles.titleMedium),
-              const SizedBox(height: AppSpacing.sm),
-              for (final item in items) ...[
-                _BatchItemCard(item: item),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-            ],
-          ),
-          if (batch.verificationNote != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            _CorrectionNote(note: batch.verificationNote!),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          if (!awaiting)
-            ReceiptActions(
-              recordId: batch.id,
-              kind: ReceiptKind.purchase,
-              branch: batch.branch,
-              counterparty: batch.customer.name,
-              totalCentavos: total,
-              buildReceipt: () => ReceiptService.purchase(batch: batch, items: items),
-              buildText: () => ReceiptService.purchaseText(batch: batch, items: items),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDim,
-                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lock_outline_rounded, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'The receipt is issued once a Cashier releases the cash.',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (canMoveCash && awaiting) ...[
-            const SizedBox(height: AppSpacing.lg),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: context.semanticColors.success),
-                icon: const Icon(Icons.payments_rounded),
-                label: Text('Release ${AppFormat.peso(total, whole: true)}'),
-                onPressed: () => _releaseCash(context, repo, batch, total),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: const BorderSide(color: AppColors.danger, width: 1.4),
+                  ],
                 ),
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Return for Correction'),
-                onPressed: () => _returnForCorrection(context, repo, batch),
               ),
-            ),
+            if (canMoveCash && awaiting) ...[
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: context.semanticColors.success),
+                  icon: const Icon(Icons.payments_rounded),
+                  label: Text('Release ${AppFormat.peso(total, whole: true)}'),
+                  onPressed: () => _releaseCash(context, repo, batch, total),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger, width: 1.4),
+                  ),
+                  icon: const Icon(Icons.flag_outlined),
+                  label: const Text('Return for Correction'),
+                  onPressed: () => _returnForCorrection(context, repo, batch),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            Text('Activity', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            RecordActivityList(entries: repo.logsForRecord(batch.id)),
+            const SizedBox(height: AppSpacing.lg),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          Text('Activity', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          RecordActivityList(entries: repo.logsForRecord(batch.id)),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        ),
       ),
     );
   }

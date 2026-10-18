@@ -17,6 +17,7 @@ import '../../core/widgets/value_display.dart';
 import 'create_partition_sheet.dart';
 import 'edit_item_screen.dart';
 import 'purchase_form_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// A single item's full record: its own weight/amount, its place in a
 /// partitioned lot (original vs. remaining, always shown together), and
@@ -71,157 +72,159 @@ class LotDetailScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          if (item.verificationStatus == VerificationStatus.returnedForCorrection)
-            _ReturnedCard(item: item, canEdit: canEdit),
-          if (parent != null) _ParentLinkCard(parent: parent),
-          _HeaderCard(item: item),
-          const SizedBox(height: AppSpacing.sm),
-          AccountabilityCard(
-            children: [
-              AttributionRow(
-                icon: Icons.edit_note_rounded,
-                label: item.isPartitioned ? 'Drawn by' : 'Encoded by',
-                userId: item.encodedByUserId,
-                at: item.purchaseDate,
-              ),
-              if (!item.isPartitioned)
-                AttributionRow(
-                  icon: Icons.payments_outlined,
-                  label: 'Cash released by',
-                  userId: batch?.releasedByUserId,
-                  at: batch?.releasedAt,
-                  pendingText: 'Not yet released',
-                ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (item.isExhausted)
-            const _ExhaustedBanner()
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: ValueDisplay(
-                    label: 'Original Grams',
-                    value: AppFormat.grams(item.effectiveOriginalGrams),
-                    origin: FigureOrigin.entered,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ValueDisplay(
-                    label: 'Original Amount',
-                    value: AppFormat.peso(item.effectiveOriginalAmountCentavos, whole: true),
-                    origin: FigureOrigin.entered,
-                    valueColor: context.semanticColors.gold,
-                  ),
-                ),
-              ],
-            ),
-          if (!item.isExhausted) ...[
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            if (item.verificationStatus == VerificationStatus.returnedForCorrection)
+              _ReturnedCard(item: item, canEdit: canEdit),
+            if (parent != null) _ParentLinkCard(parent: parent),
+            _HeaderCard(item: item),
             const SizedBox(height: AppSpacing.sm),
-            Row(
+            AccountabilityCard(
               children: [
-                Expanded(
-                  child: ValueDisplay(
-                    label: 'Remaining Grams',
-                    value: AppFormat.grams(item.effectiveRemainingGrams),
-                    origin: FigureOrigin.derived,
-                  ),
+                AttributionRow(
+                  icon: Icons.edit_note_rounded,
+                  label: item.isPartitioned ? 'Drawn by' : 'Encoded by',
+                  userId: item.encodedByUserId,
+                  at: item.purchaseDate,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: ValueDisplay(
-                    label: 'Remaining Amount',
-                    value: AppFormat.peso(item.effectiveRemainingAmountCentavos, whole: true),
-                    origin: FigureOrigin.derived,
-                    valueColor: context.semanticColors.gold,
+                if (!item.isPartitioned)
+                  AttributionRow(
+                    icon: Icons.payments_outlined,
+                    label: 'Cash released by',
+                    userId: batch?.releasedByUserId,
+                    at: batch?.releasedAt,
+                    pendingText: 'Not yet released',
                   ),
-                ),
               ],
             ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          if (canPartition)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => CreatePartitionSheet(parentId: item.id),
-                ),
-                icon: const Icon(Icons.call_split_rounded),
-                label: const Text('Create Partition'),
-              ),
-            )
-          else if (item.verificationStatus != VerificationStatus.verified && !item.isExhausted)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-              child: Text(
-                'Partitioning is available once this purchase is verified and cash is released.',
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Partitions (${partitions.length})', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (partitions.isEmpty)
-            const EmptyState(
-              icon: Icons.call_split_rounded,
-              title: 'No partitions yet',
-              message: 'This lot has not been split into smaller items.',
-            )
-          else
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Column(
+            const SizedBox(height: AppSpacing.md),
+            if (item.isExhausted)
+              const _ExhaustedBanner()
+            else
+              Row(
                 children: [
-                  for (final p in partitions)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InventoryItemTile(
-                            item: p,
-                            showVerification: true,
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: p.id)),
-                            ),
-                          ),
-                        ),
-                        // Disabled rather than hidden once the piece has moved
-                        // on, so an Admin can see the action exists and why it
-                        // no longer applies.
-                        if (canDeletePartitions)
-                          IconButton(
-                            icon: const Icon(Icons.undo_rounded),
-                            color: AppColors.danger,
-                            tooltip: p.canReturnToParent
-                                ? 'Return this partition to the lot'
-                                : 'A ${p.itemStatus.label.toLowerCase()} partition can no longer be returned',
-                            onPressed: p.canReturnToParent
-                                ? () => _confirmReturnPartition(context, repo, p, item)
-                                : null,
-                          ),
-                        const SizedBox(width: AppSpacing.xs),
-                      ],
+                  Expanded(
+                    child: ValueDisplay(
+                      label: 'Original Grams',
+                      value: AppFormat.grams(item.effectiveOriginalGrams),
+                      origin: FigureOrigin.entered,
                     ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: ValueDisplay(
+                      label: 'Original Amount',
+                      value: AppFormat.peso(item.effectiveOriginalAmountCentavos, whole: true),
+                      origin: FigureOrigin.entered,
+                      valueColor: context.semanticColors.gold,
+                    ),
+                  ),
                 ],
               ),
-            ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Activity', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          RecordActivityList(entries: activity),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+            if (!item.isExhausted) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: ValueDisplay(
+                      label: 'Remaining Grams',
+                      value: AppFormat.grams(item.effectiveRemainingGrams),
+                      origin: FigureOrigin.derived,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: ValueDisplay(
+                      label: 'Remaining Amount',
+                      value: AppFormat.peso(item.effectiveRemainingAmountCentavos, whole: true),
+                      origin: FigureOrigin.derived,
+                      valueColor: context.semanticColors.gold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            if (canPartition)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => CreatePartitionSheet(parentId: item.id),
+                  ),
+                  icon: const Icon(Icons.call_split_rounded),
+                  label: const Text('Create Partition'),
+                ),
+              )
+            else if (item.verificationStatus != VerificationStatus.verified && !item.isExhausted)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Text(
+                  'Partitioning is available once this purchase is verified and cash is released.',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Partitions (${partitions.length})', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (partitions.isEmpty)
+              const EmptyState(
+                icon: Icons.call_split_rounded,
+                title: 'No partitions yet',
+                message: 'This lot has not been split into smaller items.',
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: [
+                    for (final p in partitions)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InventoryItemTile(
+                              item: p,
+                              showVerification: true,
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => LotDetailScreen(itemId: p.id)),
+                              ),
+                            ),
+                          ),
+                          // Disabled rather than hidden once the piece has moved
+                          // on, so an Admin can see the action exists and why it
+                          // no longer applies.
+                          if (canDeletePartitions)
+                            IconButton(
+                              icon: const Icon(Icons.undo_rounded),
+                              color: AppColors.danger,
+                              tooltip: p.canReturnToParent
+                                  ? 'Return this partition to the lot'
+                                  : 'A ${p.itemStatus.label.toLowerCase()} partition can no longer be returned',
+                              onPressed: p.canReturnToParent
+                                  ? () => _confirmReturnPartition(context, repo, p, item)
+                                  : null,
+                            ),
+                          const SizedBox(width: AppSpacing.xs),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Activity', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            RecordActivityList(entries: activity),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
       ),
     );
   }

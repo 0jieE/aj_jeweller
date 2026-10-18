@@ -11,6 +11,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import '../../core/widgets/value_display.dart';
 import 'disposal_tag_commitment_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Capital is pulled automatically from the selected records and rendered
 /// read-only; gross grams and gross amount are always typed by hand here,
@@ -42,81 +43,83 @@ class _DisposalRecordScreenState extends State<DisposalRecordScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Record Disposal')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Text('Batch Composition (${items.length})', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              border: Border.all(color: AppColors.outline),
-            ),
-            constraints: const BoxConstraints(maxHeight: 220),
-            child: Scrollbar(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                shrinkWrap: true,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, i) => _CompositionRow(item: items[i]),
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Text('Batch Composition (${items.length})', style: AppTextStyles.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                border: Border.all(color: AppColors.outline),
+              ),
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: Scrollbar(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, i) => _CompositionRow(item: items[i]),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Nominal weight ${AppFormat.grams(totalGrams)} — for reference only; enter the actual disposal result below.',
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ValueDisplay(
-            label: 'Capital (pulled from selection)',
-            value: AppFormat.peso(capitalCentavos),
-            origin: FigureOrigin.derived,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _DateField(date: _date, onChanged: (d) => setState(() => _date = d)),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Gross Grams (actual)',
-            kind: NumericInputKind.grams,
-            onChanged: (v) => setState(() => _grossGrams = v),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Gross Amount (actual)',
-            kind: NumericInputKind.peso,
-            onChanged: (v) => setState(() => _grossAmountCentavos = v != null ? (v * 100).round() : null),
-          ),
-          if (netCentavos != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Nominal weight ${AppFormat.grams(totalGrams)} — for reference only; enter the actual disposal result below.',
+              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            ),
             const SizedBox(height: AppSpacing.md),
             ValueDisplay(
-              label: 'Batch Net (shop profit) = Gross − Capital',
-              value: AppFormat.pesoSigned(netCentavos),
+              label: 'Capital (pulled from selection)',
+              value: AppFormat.peso(capitalCentavos),
               origin: FigureOrigin.derived,
-              valueColor: netCentavos >= 0 ? context.semanticColors.success : context.semanticColors.danger,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _DateField(date: _date, onChanged: (d) => setState(() => _date = d)),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Gross Grams (actual)',
+              kind: NumericInputKind.grams,
+              onChanged: (v) => setState(() => _grossGrams = v),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Gross Amount (actual)',
+              kind: NumericInputKind.peso,
+              onChanged: (v) => setState(() => _grossAmountCentavos = v != null ? (v * 100).round() : null),
+            ),
+            if (netCentavos != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              ValueDisplay(
+                label: 'Batch Net (shop profit) = Gross − Capital',
+                value: AppFormat.pesoSigned(netCentavos),
+                origin: FigureOrigin.derived,
+                valueColor: netCentavos >= 0 ? context.semanticColors.success : context.semanticColors.danger,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _isValid
+                  ? () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DisposalTagCommitmentScreen(
+                            itemIds: widget.itemIds,
+                            branch: widget.branch,
+                            date: _date,
+                            capitalCentavos: capitalCentavos,
+                            grossGrams: _grossGrams!,
+                            grossAmountCentavos: _grossAmountCentavos!,
+                          ),
+                        ),
+                      )
+                  : null,
+              child: const Text('Continue'),
             ),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: _isValid
-                ? () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => DisposalTagCommitmentScreen(
-                          itemIds: widget.itemIds,
-                          branch: widget.branch,
-                          date: _date,
-                          capitalCentavos: capitalCentavos,
-                          grossGrams: _grossGrams!,
-                          grossAmountCentavos: _grossAmountCentavos!,
-                        ),
-                      ),
-                    )
-                : null,
-            child: const Text('Continue'),
-          ),
-        ],
+        ),
       ),
     );
   }

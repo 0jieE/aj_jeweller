@@ -17,6 +17,7 @@ import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/partial_progress_bar.dart';
 import '../../core/widgets/status_badges.dart';
 import '../disposal_history/disposal_batch_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The full loan statement: header figures, repayment progress, and the
 /// audit trail of every disposal batch applied against the balance.
@@ -36,90 +37,92 @@ class CommitmentDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(c.lender)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          _HeaderCard(ledger: ledger),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Repayment Progress', style: AppTextStyles.titleMedium),
-                const SizedBox(height: AppSpacing.sm),
-                PartialProgressBar(
-                  amountSoFarCentavos: ledger.repaidAmountCentavos,
-                  targetAmountCentavos: c.amountCentavos,
-                  label: 'Paid via disposal gross',
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: sc.goldSurface,
-                    borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.scale_outlined, size: 16, color: sc.goldDark),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          ledger.status == CommitmentStatus.loanPaid
-                              ? 'Fully covered — no weight left outstanding.'
-                              : '≈ ${AppFormat.grams(ledger.remainingGrams)} still stands between the shop and a cleared loan, at ${AppFormat.peso(c.ratePerGramCentavos)}/g.',
-                          style: AppTextStyles.bodyMedium.copyWith(color: sc.goldDark, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (ledger.status == CommitmentStatus.loanPending && canManage) ...[
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            _HeaderCard(ledger: ledger),
             const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: sc.success),
-                icon: const Icon(Icons.payments_rounded),
-                label: const Text('Record Cash Received'),
-                onPressed: () => _receiveCash(context, repo, c),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                border: Border.all(color: AppColors.outline),
               ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          Text('Repayment History (${ledger.appliedBatches.length})', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (ledger.appliedBatches.isEmpty)
-            EmptyState(
-              icon: Icons.receipt_long_outlined,
-              title: ledger.status == CommitmentStatus.loanPending ? 'Loan not yet received' : 'No repayments yet',
-              message: ledger.status == CommitmentStatus.loanPending
-                  ? 'Repayment history will appear here once cash is received and disposed scrap starts paying down the balance.'
-                  : 'Disposal batches applied to this loan will show up here as they happen.',
-            )
-          else
-            Column(
-              children: [
-                for (final batch in ledger.appliedBatches)
-                  _RepaymentHistoryTile(
-                    batch: batch,
-                    karatBreakdown: repo.karatBreakdown(batch.id),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => DisposalBatchDetailScreen(batchId: batch.id)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Repayment Progress', style: AppTextStyles.titleMedium),
+                  const SizedBox(height: AppSpacing.sm),
+                  PartialProgressBar(
+                    amountSoFarCentavos: ledger.repaidAmountCentavos,
+                    targetAmountCentavos: c.amountCentavos,
+                    label: 'Paid via disposal gross',
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: sc.goldSurface,
+                      borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.scale_outlined, size: 16, color: sc.goldDark),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            ledger.status == CommitmentStatus.loanPaid
+                                ? 'Fully covered — no weight left outstanding.'
+                                : '≈ ${AppFormat.grams(ledger.remainingGrams)} still stands between the shop and a cleared loan, at ${AppFormat.peso(c.ratePerGramCentavos)}/g.',
+                            style: AppTextStyles.bodyMedium.copyWith(color: sc.goldDark, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-        ],
+            if (ledger.status == CommitmentStatus.loanPending && canManage) ...[
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: sc.success),
+                  icon: const Icon(Icons.payments_rounded),
+                  label: const Text('Record Cash Received'),
+                  onPressed: () => _receiveCash(context, repo, c),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            Text('Repayment History (${ledger.appliedBatches.length})', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (ledger.appliedBatches.isEmpty)
+              EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: ledger.status == CommitmentStatus.loanPending ? 'Loan not yet received' : 'No repayments yet',
+                message: ledger.status == CommitmentStatus.loanPending
+                    ? 'Repayment history will appear here once cash is received and disposed scrap starts paying down the balance.'
+                    : 'Disposal batches applied to this loan will show up here as they happen.',
+              )
+            else
+              Column(
+                children: [
+                  for (final batch in ledger.appliedBatches)
+                    _RepaymentHistoryTile(
+                      batch: batch,
+                      karatBreakdown: repo.karatBreakdown(batch.id),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => DisposalBatchDetailScreen(batchId: batch.id)),
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

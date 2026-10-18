@@ -10,6 +10,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/search_field.dart';
 import 'user_form_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The shop's staff, grouped by where they work. Admins can add people, edit
 /// them, and deactivate or delete them; everyone else can look.
@@ -63,68 +64,70 @@ class _UsersScreenState extends State<UsersScreen> {
               label: const Text('Add User'),
             )
           : null,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 96),
-        children: [
-          SearchField(
-            hintText: 'Search by name, role, or number',
-            onChanged: (v) => setState(() => _query = v),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              Expanded(
+      body: ReadableWidth(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 96),
+          children: [
+            SearchField(
+              hintText: 'Search by name, role, or number',
+              onChanged: (v) => setState(() => _query = v),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${repo.users.length} active${inactiveCount == 0 ? '' : ' · $inactiveCount deactivated'}',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+                if (inactiveCount > 0)
+                  FilterChip(
+                    label: const Text('Show deactivated'),
+                    selected: _showInactive,
+                    onSelected: (v) => setState(() => _showInactive = v),
+                  ),
+              ],
+            ),
+            if (!canManage)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: Text(
-                  '${repo.users.length} active${inactiveCount == 0 ? '' : ' · $inactiveCount deactivated'}',
+                  'Only an Admin can add or change users.',
                   style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                 ),
               ),
-              if (inactiveCount > 0)
-                FilterChip(
-                  label: const Text('Show deactivated'),
-                  selected: _showInactive,
-                  onSelected: (v) => setState(() => _showInactive = v),
+            if (groups.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Text('No users match.', textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
+              ),
+            for (final entry in groups.entries) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(entry.key.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 0.6)),
+              const SizedBox(height: AppSpacing.xs),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
                 ),
-            ],
-          ),
-          if (!canManage)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(
-                'Only an Admin can add or change users.',
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-              ),
-            ),
-          if (groups.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Text('No users match.', textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
-            ),
-          for (final entry in groups.entries) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(entry.key.toUpperCase(), style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, letterSpacing: 0.6)),
-            const SizedBox(height: AppSpacing.xs),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Column(
-                children: [
-                  for (var i = 0; i < entry.value.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _UserTile(
-                      user: entry.value[i],
-                      isYou: entry.value[i].id == appState.currentUser.id,
-                      activity: repo.userActivityCount(entry.value[i].id),
-                    ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < entry.value.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _UserTile(
+                        user: entry.value[i],
+                        isYou: entry.value[i].id == appState.currentUser.id,
+                        activity: repo.userActivityCount(entry.value[i].id),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

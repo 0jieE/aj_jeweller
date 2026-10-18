@@ -12,6 +12,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/status_badges.dart';
 import 'gold_rate_reference_screen.dart';
 import 'rate_change_tile.dart';
+import '../../core/navigation/layout.dart';
 
 /// Every price one karat or silver fineness has been set at, newest first,
 /// with who set it and by how much it moved.
@@ -44,65 +45,67 @@ class RateHistoryScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              border: Border.all(color: palette.edge),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  rateName(karat).toUpperCase(),
-                  style: AppTextStyles.labelSmall.copyWith(color: palette.text),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${AppFormat.peso(rate.pricePerGramCentavos)} / g',
-                  style: AppTextStyles.numericLarge.copyWith(color: palette.text, fontSize: 26),
-                ),
-                Text(
-                  'Current price · since ${AppFormat.dateTimeShort(rate.updatedAt)}',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                ),
-                if (history.length > 1) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  _RangeLine(history: history),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Price Changes (${history.length})', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (history.isEmpty)
-            const EmptyState(
-              icon: Icons.history_rounded,
-              title: 'No history yet',
-              message: 'Every time this price is set, it is recorded here.',
-            )
-          else
+      body: ReadableWidth(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
             Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.cardSurface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
+                border: Border.all(color: palette.edge),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (var i = 0; i < history.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    RateChangeTile(change: history[i]),
+                  Text(
+                    rateName(karat).toUpperCase(),
+                    style: AppTextStyles.labelSmall.copyWith(color: palette.text),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${AppFormat.peso(rate.pricePerGramCentavos)} / g',
+                    style: AppTextStyles.numericLarge.copyWith(color: palette.text, fontSize: 26),
+                  ),
+                  Text(
+                    'Current price · since ${AppFormat.dateTimeShort(rate.updatedAt)}',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                  if (history.length > 1) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    _RangeLine(history: history),
                   ],
                 ],
               ),
             ),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            Text('Price Changes (${history.length})', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (history.isEmpty)
+              const EmptyState(
+                icon: Icons.history_rounded,
+                title: 'No history yet',
+                message: 'Every time this price is set, it is recorded here.',
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < history.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      RateChangeTile(change: history[i]),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

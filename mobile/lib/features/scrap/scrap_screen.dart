@@ -8,6 +8,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../disposal_history/disposal_history_screen.dart';
 import 'disposal_selection_screen.dart';
 import 'scrap_inventory_screen.dart';
+import '../../core/navigation/layout.dart';
 
 enum _ScrapView { gold, silver, history }
 
@@ -30,20 +31,22 @@ class _ScrapScreenState extends State<ScrapScreen> {
     final role = context.watch<AppState>().role;
 
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-            child: _ViewToggle(view: _view, onChanged: (v) => setState(() => _view = v)),
-          ),
-          Expanded(
-            child: switch (_view) {
-              _ScrapView.gold => const ScrapInventoryScreen(key: ValueKey('gold')),
-              _ScrapView.silver => const ScrapInventoryScreen(key: ValueKey('silver'), silver: true),
-              _ScrapView.history => const DisposalHistoryScreen(),
-            },
-          ),
-        ],
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+              child: _ViewToggle(view: _view, onChanged: (v) => setState(() => _view = v)),
+            ),
+            Expanded(
+              child: switch (_view) {
+                _ScrapView.gold => const ScrapInventoryScreen(key: ValueKey('gold')),
+                _ScrapView.silver => const ScrapInventoryScreen(key: ValueKey('silver'), silver: true),
+                _ScrapView.history => const DisposalHistoryScreen(),
+              },
+            ),
+          ],
+        ),
       ),
       floatingActionButton: (role.canRunDisposal && _view != _ScrapView.history)
           ? FloatingActionButton.extended(

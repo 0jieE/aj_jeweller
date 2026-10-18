@@ -64,6 +64,15 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: Colors.white),
       ),
+      // Tabs live in the app bar, so they are the colour of whatever bar
+      // they sit on: white on the blue bar a phone shows, and dark on the
+      // light toolbar the desktop pane paints (see AppShell).
+      tabBarTheme: const TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white70,
+        indicatorColor: Colors.white,
+        dividerColor: Colors.transparent,
+      ),
       cardTheme: CardThemeData(
         color: AppColors.cardSurface,
         elevation: 0,

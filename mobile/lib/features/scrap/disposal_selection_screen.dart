@@ -13,6 +13,7 @@ import '../../core/widgets/filter_menu_chip.dart';
 import '../../core/widgets/formatters.dart';
 import '../../core/widgets/status_badges.dart';
 import 'disposal_record_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Bulk selection for a disposal batch. An admin may be assembling this
 /// from months of records, so selection is held by item id (not list
@@ -93,163 +94,165 @@ class _DisposalSelectionScreenState extends State<DisposalSelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.silver ? 'Dispose Silver' : 'Dispose Gold Scrap')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                hintText: 'Search origin or description',
-                isDense: true,
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _query = '');
-                        },
-                      ),
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  hintText: 'Search origin or description',
+                  isDense: true,
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _query = v),
               ),
-              onChanged: (v) => setState(() => _query = v),
             ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-              children: [
-                if (appState.selectedBranch == null) ...[
-                  _ChipMenu<BranchId>(
-                    label: _branch.label,
-                    active: true,
-                    items: [for (final b in BranchId.values) PopupMenuItem(value: b, child: Text(b.label))],
-                    onSelected: _changeBranch,
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                children: [
+                  if (appState.selectedBranch == null) ...[
+                    _ChipMenu<BranchId>(
+                      label: _branch.label,
+                      active: true,
+                      items: [for (final b in BranchId.values) PopupMenuItem(value: b, child: Text(b.label))],
+                      onSelected: _changeBranch,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                  _DateRangeChip(range: _dateRange, onChanged: (v) => setState(() => _dateRange = v)),
+                  const SizedBox(width: AppSpacing.sm),
+                  FilterMenuChip<int>(
+                    label: _karatFilter != null ? AppFormat.karat(_karatFilter!) : (widget.silver ? 'Purity' : 'Karat'),
+                    active: _karatFilter != null,
+                    allLabel: widget.silver ? 'All purities' : 'All karats',
+                    values: availableKarats,
+                    labelOf: AppFormat.karat,
+                    onChanged: (v) => setState(() => _karatFilter = v),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                ],
-                _DateRangeChip(range: _dateRange, onChanged: (v) => setState(() => _dateRange = v)),
-                const SizedBox(width: AppSpacing.sm),
-                FilterMenuChip<int>(
-                  label: _karatFilter != null ? AppFormat.karat(_karatFilter!) : (widget.silver ? 'Purity' : 'Karat'),
-                  active: _karatFilter != null,
-                  allLabel: widget.silver ? 'All purities' : 'All karats',
-                  values: availableKarats,
-                  labelOf: AppFormat.karat,
-                  onChanged: (v) => setState(() => _karatFilter = v),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _ChipMenu<_SortBy>(
-                  label: switch (_sort) {
-                    _SortBy.newest => 'Newest',
-                    _SortBy.gramsDesc => 'Grams ↓',
-                    _SortBy.capitalDesc => 'Capital ↓',
-                  },
-                  active: _sort != _SortBy.newest,
-                  items: const [
-                    PopupMenuItem(value: _SortBy.newest, child: Text('Newest')),
-                    PopupMenuItem(value: _SortBy.gramsDesc, child: Text('Grams ↓')),
-                    PopupMenuItem(value: _SortBy.capitalDesc, child: Text('Capital ↓')),
-                  ],
-                  onSelected: (v) => setState(() => _sort = v),
-                ),
-              ],
-            ),
-          ),
-          // Select all is a real checkbox, not a text link: it is the fastest
-          // way to dispose a whole month of scrap, and it shows at a glance
-          // whether everything in view is already in the batch.
-          Container(
-            margin: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: InkWell(
-              onTap: filtered.isEmpty
-                  ? null
-                  : () => setState(() {
-                        if (allFilteredSelected) {
-                          _selectedIds.removeAll(filtered.map((i) => i.id));
-                        } else {
-                          _selectedIds.addAll(filtered.map((i) => i.id));
-                        }
-                      }),
-              child: Row(
-                children: [
-                  Checkbox(
-                    tristate: true,
-                    value: allFilteredSelected
-                        ? true
-                        : (filtered.any((i) => _selectedIds.contains(i.id)) ? null : false),
-                    onChanged: filtered.isEmpty
-                        ? null
-                        : (_) => setState(() {
-                              if (allFilteredSelected) {
-                                _selectedIds.removeAll(filtered.map((i) => i.id));
-                              } else {
-                                _selectedIds.addAll(filtered.map((i) => i.id));
-                              }
-                            }),
+                  _ChipMenu<_SortBy>(
+                    label: switch (_sort) {
+                      _SortBy.newest => 'Newest',
+                      _SortBy.gramsDesc => 'Grams ↓',
+                      _SortBy.capitalDesc => 'Capital ↓',
+                    },
+                    active: _sort != _SortBy.newest,
+                    items: const [
+                      PopupMenuItem(value: _SortBy.newest, child: Text('Newest')),
+                      PopupMenuItem(value: _SortBy.gramsDesc, child: Text('Grams ↓')),
+                      PopupMenuItem(value: _SortBy.capitalDesc, child: Text('Capital ↓')),
+                    ],
+                    onSelected: (v) => setState(() => _sort = v),
                   ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Select all (${filtered.length})',
-                          style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          '${_selectedIds.length} selected',
-                          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_selectedIds.isNotEmpty)
-                    TextButton(
-                      onPressed: () => setState(_selectedIds.clear),
-                      child: const Text('Clear'),
-                    ),
                 ],
               ),
             ),
-          ),
-          Expanded(
-            child: filtered.isEmpty
-                ? EmptyState(
-                    icon: Icons.filter_alt_off_outlined,
-                    title: branchPool.isEmpty
-                        ? (widget.silver ? 'No silver on hand to dispose' : 'No scrap waiting for disposal')
-                        : 'Nothing matches these filters',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xxl),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final item = filtered[i];
-                      final selected = _selectedIds.contains(item.id);
-                      return _SelectableScrapTile(
-                        item: item,
-                        selected: selected,
-                        onChanged: (v) => setState(() {
-                          if (v) {
-                            _selectedIds.add(item.id);
+            // Select all is a real checkbox, not a text link: it is the fastest
+            // way to dispose a whole month of scrap, and it shows at a glance
+            // whether everything in view is already in the batch.
+            Container(
+              margin: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: InkWell(
+                onTap: filtered.isEmpty
+                    ? null
+                    : () => setState(() {
+                          if (allFilteredSelected) {
+                            _selectedIds.removeAll(filtered.map((i) => i.id));
                           } else {
-                            _selectedIds.remove(item.id);
+                            _selectedIds.addAll(filtered.map((i) => i.id));
                           }
                         }),
-                      );
-                    },
-                  ),
-          ),
-        ],
+                child: Row(
+                  children: [
+                    Checkbox(
+                      tristate: true,
+                      value: allFilteredSelected
+                          ? true
+                          : (filtered.any((i) => _selectedIds.contains(i.id)) ? null : false),
+                      onChanged: filtered.isEmpty
+                          ? null
+                          : (_) => setState(() {
+                                if (allFilteredSelected) {
+                                  _selectedIds.removeAll(filtered.map((i) => i.id));
+                                } else {
+                                  _selectedIds.addAll(filtered.map((i) => i.id));
+                                }
+                              }),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Select all (${filtered.length})',
+                            style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '${_selectedIds.length} selected',
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_selectedIds.isNotEmpty)
+                      TextButton(
+                        onPressed: () => setState(_selectedIds.clear),
+                        child: const Text('Clear'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? EmptyState(
+                      icon: Icons.filter_alt_off_outlined,
+                      title: branchPool.isEmpty
+                          ? (widget.silver ? 'No silver on hand to dispose' : 'No scrap waiting for disposal')
+                          : 'Nothing matches these filters',
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xxl),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final item = filtered[i];
+                        final selected = _selectedIds.contains(item.id);
+                        return _SelectableScrapTile(
+                          item: item,
+                          selected: selected,
+                          onChanged: (v) => setState(() {
+                            if (v) {
+                              _selectedIds.add(item.id);
+                            } else {
+                              _selectedIds.remove(item.id);
+                            }
+                          }),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: _selectedIds.isEmpty
           ? null

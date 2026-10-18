@@ -16,6 +16,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/partial_progress_bar.dart';
 import '../commitment/commitment_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The final review: tag the batch to the commitment it settles, watch that
 /// loan's balance update live from the entered gross before committing, and
@@ -80,78 +81,80 @@ class _DisposalTagCommitmentScreenState extends State<DisposalTagCommitmentScree
 
     return Scaffold(
       appBar: AppBar(title: const Text('Tag to Commitment')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _FigureCard(
-                  label: 'Batch Net (shop profit)',
-                  value: AppFormat.pesoSigned(_netCentavos),
-                  color: _netCentavos >= 0 ? sc.success : sc.danger,
-                  icon: Icons.trending_up_rounded,
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _FigureCard(
+                    label: 'Batch Net (shop profit)',
+                    value: AppFormat.pesoSigned(_netCentavos),
+                    color: _netCentavos >= 0 ? sc.success : sc.danger,
+                    icon: Icons.trending_up_rounded,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _FigureCard(
-                  label: 'Loan Repayment (gross)',
-                  value: AppFormat.peso(widget.grossAmountCentavos),
-                  color: sc.danger,
-                  icon: Icons.handshake_outlined,
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _FigureCard(
+                    label: 'Loan Repayment (gross)',
+                    value: AppFormat.peso(widget.grossAmountCentavos),
+                    color: sc.danger,
+                    icon: Icons.handshake_outlined,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Apply to a Commitment', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Scrap leaves the shop to settle a loan, so every batch applies to one.',
-            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (candidates.isEmpty)
-            const EmptyState(
-              icon: Icons.handshake_outlined,
-              title: 'No commitment to settle',
-              message: 'This branch has no received loan with a balance left to pay, '
-                  'so there is nothing for this scrap to be applied against.',
+              ],
             ),
-          for (final ledger in candidates) ...[
-            _CommitmentOption(
-              ledger: ledger,
-              selected: _selectedCommitmentId == ledger.commitment.id,
-              grossAmountCentavos: widget.grossAmountCentavos,
-              grossGrams: widget.grossGrams,
-              onTap: () => setState(() => _selectedCommitmentId = ledger.commitment.id),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          ItemPhotoField(
-            photo: _photo,
-            label: 'Disposal photo',
-            caption: 'The scrap on the refiner\'s scale or the settlement slip — kept with this batch.',
-            onChanged: (bytes) => setState(() => _photo = bytes),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          ElevatedButton(
-            onPressed: selectedLedger == null
-                ? null
-                : () => _confirm(context, repo, selectedLedger!),
-            child: const Text('Confirm & Complete Disposal'),
-          ),
-          if (selectedLedger == null && candidates.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Text('Apply to a Commitment', style: AppTextStyles.titleMedium),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Pick the commitment this batch settles to continue.',
-              textAlign: TextAlign.center,
+              'Scrap leaves the shop to settle a loan, so every batch applies to one.',
               style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
             ),
+            const SizedBox(height: AppSpacing.sm),
+            if (candidates.isEmpty)
+              const EmptyState(
+                icon: Icons.handshake_outlined,
+                title: 'No commitment to settle',
+                message: 'This branch has no received loan with a balance left to pay, '
+                    'so there is nothing for this scrap to be applied against.',
+              ),
+            for (final ledger in candidates) ...[
+              _CommitmentOption(
+                ledger: ledger,
+                selected: _selectedCommitmentId == ledger.commitment.id,
+                grossAmountCentavos: widget.grossAmountCentavos,
+                grossGrams: widget.grossGrams,
+                onTap: () => setState(() => _selectedCommitmentId = ledger.commitment.id),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            ItemPhotoField(
+              photo: _photo,
+              label: 'Disposal photo',
+              caption: 'The scrap on the refiner\'s scale or the settlement slip — kept with this batch.',
+              onChanged: (bytes) => setState(() => _photo = bytes),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton(
+              onPressed: selectedLedger == null
+                  ? null
+                  : () => _confirm(context, repo, selectedLedger!),
+              child: const Text('Confirm & Complete Disposal'),
+            ),
+            if (selectedLedger == null && candidates.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Pick the commitment this batch settles to continue.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

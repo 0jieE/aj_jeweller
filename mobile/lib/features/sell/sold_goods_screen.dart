@@ -14,6 +14,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import '../../core/widgets/search_field.dart';
 import 'sale_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Completed sales for the current branch view — what actually went out the
 /// door, as opposed to the Available tab's remaining stock.
@@ -65,55 +66,57 @@ class _SoldGoodsScreenState extends State<SoldGoodsScreen> {
       (sum, s) => sum + s.lineItems.fold<double>(0, (g, l) => g + l.effectiveFinalGrams),
     );
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-          child: _SoldTotalCard(
-            count: sales.length,
-            totalCentavos: totalCentavos,
-            totalGrams: totalGrams,
+    return ReadableWidth(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+            child: _SoldTotalCard(
+              count: sales.length,
+              totalCentavos: totalCentavos,
+              totalGrams: totalGrams,
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-          child: SearchField(
-            hintText: 'Search sold by customer, item, or id',
-            onChanged: (v) => setState(() => _query = v),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+            child: SearchField(
+              hintText: 'Search sold by customer, item, or id',
+              onChanged: (v) => setState(() => _query = v),
+            ),
           ),
-        ),
-        SizedBox(
-          height: 44,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-            children: [
-              DateRangeChip(
-                range: _dateRange,
-                onChanged: (v) => setState(() => _dateRange = v),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: sales.isEmpty
-              ? EmptyState(
-                  icon: Icons.receipt_long_outlined,
-                  title: q.isEmpty && _dateRange == null
-                      ? 'Nothing sold yet'
-                      : 'No sales match these filters',
-                  message: q.isEmpty && _dateRange == null
-                      ? 'Completed sales show up here once a Cashier receives payment.'
-                      : null,
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                  itemCount: sales.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) => _SoldSaleTile(sale: sales[i]),
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+              children: [
+                DateRangeChip(
+                  range: _dateRange,
+                  onChanged: (v) => setState(() => _dateRange = v),
                 ),
-        ),
-      ],
+              ],
+            ),
+          ),
+          Expanded(
+            child: sales.isEmpty
+                ? EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: q.isEmpty && _dateRange == null
+                        ? 'Nothing sold yet'
+                        : 'No sales match these filters',
+                    message: q.isEmpty && _dateRange == null
+                        ? 'Completed sales show up here once a Cashier receives payment.'
+                        : null,
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                    itemCount: sales.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, i) => _SoldSaleTile(sale: sales[i]),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -13,6 +13,7 @@ import '../../core/widgets/numeric_input_field.dart';
 import '../../core/widgets/status_badges.dart';
 import 'rate_change_tile.dart';
 import 'rate_history_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Gold and silver rates in two tabs: the table as it stands, and the
 /// history of every price set — filterable by date and purity, with a way to
@@ -47,9 +48,6 @@ class _GoldRateReferenceScreenState extends State<GoldRateReferenceScreen>
         title: const Text('Gold & Silver Rates'),
         bottom: TabBar(
           controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'Rates'),
             Tab(text: 'History'),
@@ -63,12 +61,14 @@ class _GoldRateReferenceScreenState extends State<GoldRateReferenceScreen>
               label: const Text('Add Rate'),
             )
           : null,
-      body: TabBarView(
-        controller: _tabs,
-        children: [
-          _RatesTab(editable: editable),
-          _HistoryTab(editable: editable),
-        ],
+      body: ReadableWidth(
+        child: TabBarView(
+          controller: _tabs,
+          children: [
+            _RatesTab(editable: editable),
+            _HistoryTab(editable: editable),
+          ],
+        ),
       ),
     );
   }
@@ -105,12 +105,18 @@ class _RatesTab extends StatelessWidget {
           ),
         );
 
+    // A rate is a short fact — a karat and a price. One per row leaves a
+    // hand's width of nothing in the middle of a monitor, so on a wide
+    // window they sit side by side and the whole table is seen at once,
+    // which is how a rate table is read.
+    Widget rates(List<GoldRate> list) => _RateRows(children: [for (final r in list) card(r)]);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, 96),
       children: [
         Text('Gold', style: AppTextStyles.titleMedium),
         const SizedBox(height: AppSpacing.sm),
-        for (final r in repo.goldRates) card(r),
+        rates(repo.goldRates),
         const SizedBox(height: AppSpacing.md),
         Text('Silver', style: AppTextStyles.titleMedium),
         const SizedBox(height: AppSpacing.sm),
@@ -119,7 +125,7 @@ class _RatesTab extends StatelessWidget {
             'No silver rates yet.',
             style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
           ),
-        for (final r in repo.silverRates) card(r),
+        rates(repo.silverRates),
       ],
     );
   }
@@ -626,6 +632,32 @@ class _RateCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Rate cards: a column on a phone, two or three across a wider window.
+class _RateRows extends StatelessWidget {
+  final List<Widget> children;
+
+  const _RateRows({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = WindowSize.of(context);
+    if (size == WindowSize.compact) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+    }
+    final columns = size == WindowSize.expanded ? 3 : 2;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = (constraints.maxWidth - (columns - 1) * AppSpacing.sm) / columns;
+        return Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: 0,
+          children: [for (final child in children) SizedBox(width: width, child: child)],
+        );
+      },
     );
   }
 }

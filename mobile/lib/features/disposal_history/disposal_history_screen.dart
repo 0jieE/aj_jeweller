@@ -10,6 +10,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/formatters.dart';
 import 'disposal_batch_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Read-only log of past scrap disposal batches for the selected branch.
 class DisposalHistoryScreen extends StatelessWidget {
@@ -24,19 +25,21 @@ class DisposalHistoryScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Disposal History')),
-      body: batches.isEmpty
-          ? const EmptyState(
-              icon: Icons.inventory_2_outlined,
-              title: 'No disposal batches yet',
-              message: 'Completed scrap disposals will show up here.',
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: batches.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, i) =>
-                  _DisposalBatchCard(batch: batches[i]),
-            ),
+      body: ReadableWidth(
+        child: batches.isEmpty
+            ? const EmptyState(
+                icon: Icons.inventory_2_outlined,
+                title: 'No disposal batches yet',
+                message: 'Completed scrap disposals will show up here.',
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                itemCount: batches.length,
+                separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, i) =>
+                    _DisposalBatchCard(batch: batches[i]),
+              ),
+      ),
     );
   }
 }

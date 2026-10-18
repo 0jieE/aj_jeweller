@@ -62,3 +62,45 @@ class ReadableWidth extends StatelessWidget {
     );
   }
 }
+
+/// A form, centred and kept to the width of a form.
+///
+/// Fields stretched across a monitor are harder to fill in than fields in a
+/// column: the eye loses the line between the label and the box, and the
+/// hand travels for no reason. So a form is the same shape on a desktop as
+/// on a phone, with the room around it rather than inside it.
+class FormPane extends StatelessWidget {
+  final Widget child;
+
+  /// Wider for a form that is really a table — a basket of lines, say.
+  final double maxWidth;
+
+  const FormPane({super.key, required this.child, this.maxWidth = 640});
+
+  @override
+  Widget build(BuildContext context) {
+    if (WindowSize.of(context) == WindowSize.compact) return child;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child),
+    );
+  }
+}
+
+/// A record being read: wider than a form, because it holds figures side by
+/// side, but still short of a monitor's full width.
+class DetailPane extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+
+  const DetailPane({super.key, required this.child, this.maxWidth = 1000});
+
+  @override
+  Widget build(BuildContext context) {
+    if (WindowSize.of(context) == WindowSize.compact) return child;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child),
+    );
+  }
+}

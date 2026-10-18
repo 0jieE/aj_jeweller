@@ -12,6 +12,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/status_badges.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import '../../core/widgets/value_display.dart';
+import '../../core/navigation/layout.dart';
 
 /// Filled in at the counter while a customer waits. When [editingItem] is
 /// set, this is a Cashier's "returned for correction" being fixed and
@@ -90,87 +91,89 @@ class _PurchaseFormScreenState extends State<PurchaseFormScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Fix & Resubmit' : 'New Purchase')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          if (_isEditing && widget.editingItem?.verificationNote != null)
-            _CorrectionNoteBanner(note: widget.editingItem!.verificationNote!),
-          if (branchBalance != null) _CashTrackerCard(todaysTotal: todaysTotal, branchBalance: branchBalance),
-          const SizedBox(height: AppSpacing.md),
-          if (appState.selectedBranch == null)
-            _BranchPicker(value: _branch, onChanged: (v) => setState(() => _branch = v))
-          else
-            _ReadOnlyField(label: 'Branch', value: resolvedBranch?.label ?? '—'),
-          const SizedBox(height: AppSpacing.md),
-          _DateField(date: _date, onChanged: (d) => setState(() => _date = d)),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _descriptionController,
-            decoration: const InputDecoration(labelText: 'Description'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _TypeSelector(
-            value: _type,
-            onChanged: (v) => setState(() {
-              if (v.isSilver != _type.isSilver) {
-                _karat = null;
-                _karatFieldKey = UniqueKey();
-              }
-              _type = v;
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: NumericInputField(
-                  label: 'Weight',
-                  kind: NumericInputKind.grams,
-                  initialValue: _weightGrams,
-                  onChanged: (v) => setState(() => _weightGrams = v),
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            if (_isEditing && widget.editingItem?.verificationNote != null)
+              _CorrectionNoteBanner(note: widget.editingItem!.verificationNote!),
+            if (branchBalance != null) _CashTrackerCard(todaysTotal: todaysTotal, branchBalance: branchBalance),
+            const SizedBox(height: AppSpacing.md),
+            if (appState.selectedBranch == null)
+              _BranchPicker(value: _branch, onChanged: (v) => setState(() => _branch = v))
+            else
+              _ReadOnlyField(label: 'Branch', value: resolvedBranch?.label ?? '—'),
+            const SizedBox(height: AppSpacing.md),
+            _DateField(date: _date, onChanged: (d) => setState(() => _date = d)),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _TypeSelector(
+              value: _type,
+              onChanged: (v) => setState(() {
+                if (v.isSilver != _type.isSilver) {
+                  _karat = null;
+                  _karatFieldKey = UniqueKey();
+                }
+                _type = v;
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: NumericInputField(
+                    label: 'Weight',
+                    kind: NumericInputKind.grams,
+                    initialValue: _weightGrams,
+                    onChanged: (v) => setState(() => _weightGrams = v),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _KaratPicker(
-                  key: _karatFieldKey,
-                  value: _karat,
-                  type: _type,
-                  repo: repo,
-                  onChanged: (v) => setState(() => _karat = v),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _KaratPicker(
+                    key: _karatFieldKey,
+                    value: _karat,
+                    type: _type,
+                    repo: repo,
+                    onChanged: (v) => setState(() => _karat = v),
+                  ),
                 ),
+              ],
+            ),
+            if (rate != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _GoldRateReferenceCard(
+                karat: rate.karat,
+                pricePerGramCentavos: rate.pricePerGramCentavos,
+                referenceAmount: referenceAmount,
               ),
             ],
-          ),
-          if (rate != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            _GoldRateReferenceCard(
-              karat: rate.karat,
-              pricePerGramCentavos: rate.pricePerGramCentavos,
-              referenceAmount: referenceAmount,
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Purchase Amount',
+              kind: NumericInputKind.peso,
+              initialValue: _amountCentavos != null ? _amountCentavos! / 100 : null,
+              onChanged: (v) => setState(() => _amountCentavos = v != null ? (v * 100).round() : null),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _originController,
+              decoration: const InputDecoration(labelText: 'Origin note (e.g. "Walk-in – Juan Dela Cruz")'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _isValid ? () => _save(context, repo, appState) : null,
+              child: Text(_isEditing ? 'Resubmit for Verification' : 'Save Purchase'),
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Purchase Amount',
-            kind: NumericInputKind.peso,
-            initialValue: _amountCentavos != null ? _amountCentavos! / 100 : null,
-            onChanged: (v) => setState(() => _amountCentavos = v != null ? (v * 100).round() : null),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _originController,
-            decoration: const InputDecoration(labelText: 'Origin note (e.g. "Walk-in – Juan Dela Cruz")'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: _isValid ? () => _save(context, repo, appState) : null,
-            child: Text(_isEditing ? 'Resubmit for Verification' : 'Save Purchase'),
-          ),
-        ],
+        ),
       ),
     );
   }

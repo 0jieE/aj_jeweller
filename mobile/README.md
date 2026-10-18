@@ -132,8 +132,26 @@ What changes with the window, rather than with the platform
 
 - under 600px the navigation sits along the bottom, as a phone expects;
   wider, it moves to a labelled rail down the side;
+- **the frame stays put.** On a desktop each tab has its own history inside
+  the content pane, so opening a record never takes the title bar, the
+  branch, who is signed in or the sync state away with it — only the pane
+  changes. Each tab remembers where it was left, tapping the tab you are on
+  returns to the top of it, and Escape closes a record the way it does in any
+  desktop window. A phone still opens records full screen, which is right for
+  one hand ([app_shell.dart](lib/core/navigation/app_shell.dart));
+- a screen opened in the pane keeps its own toolbar — title, back arrow,
+  actions — but wears it lightly: one heavy blue bar at the top of the window
+  is a frame, two is a mistake;
 - content stops widening at a readable width instead of running the length
-  of a monitor;
+  of a monitor — a form stays the width of a form (`FormPane`), a record gets
+  more room (`DetailPane`), and a list stops short of the window's edge
+  (`ReadableWidth`). Within a screen everything shares one edge: the toggle,
+  the search, the filters and the stock all line up;
+- the Dashboard splits in two above 840px — the day's work on the left, the
+  shop's position and the rates beside it, both in view at once;
+- the rate table lays itself out across the window instead of one rate per
+  row, and a card lifts under the pointer so you can see what you are about
+  to open;
 - the cash ledger shows its history and its entry form side by side, which is
   how the ledger is actually worked — the phone shows one at a time;
 - stock is laid out as cards rather than rows — the photograph first, then

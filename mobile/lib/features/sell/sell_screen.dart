@@ -11,6 +11,7 @@ import 'cart_bar.dart';
 import 'order_summary_screen.dart';
 import 'sale_verification_queue_screen.dart';
 import 'sold_goods_screen.dart';
+import '../../core/navigation/layout.dart';
 
 enum _SellView { browse, silver, sold, queue }
 
@@ -38,25 +39,27 @@ class _SellScreenState extends State<SellScreen> {
     final view = _view ?? (canQueue && !canSell ? _SellView.queue : _SellView.browse);
 
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-            child: _ViewToggle(
-              view: view,
-              showQueue: canQueue,
-              onChanged: (v) => setState(() => _view = v),
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+              child: _ViewToggle(
+                view: view,
+                showQueue: canQueue,
+                onChanged: (v) => setState(() => _view = v),
+              ),
             ),
-          ),
-          Expanded(
-            child: switch (view) {
-              _SellView.browse => const BrowseGoodsScreen(key: ValueKey('gold')),
-              _SellView.silver => const BrowseGoodsScreen(key: ValueKey('silver'), silver: true),
-              _SellView.sold => const SoldGoodsScreen(),
-              _SellView.queue => const SaleVerificationQueueScreen(),
-            },
-          ),
-        ],
+            Expanded(
+              child: switch (view) {
+                _SellView.browse => const BrowseGoodsScreen(key: ValueKey('gold')),
+                _SellView.silver => const BrowseGoodsScreen(key: ValueKey('silver'), silver: true),
+                _SellView.sold => const SoldGoodsScreen(),
+                _SellView.queue => const SaleVerificationQueueScreen(),
+              },
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: (canSell && (view == _SellView.browse || view == _SellView.silver) && !cart.isEmpty)
           ? CartBar(

@@ -10,6 +10,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/item_photo_field.dart';
 import '../commitment/commitment_detail_screen.dart';
 import '../purchase/lot_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// The full record for one disposal batch — what the "repayment history"
 /// on a commitment's ledger links into, and what the disposal history list
@@ -36,168 +37,170 @@ class DisposalBatchDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(batch.id)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('${batch.branch.label} · ${batch.itemIds.length} item(s)', style: AppTextStyles.titleMedium),
-                    Text(AppFormat.dateShort(batch.date), style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
-                  ],
-                ),
-                if (batch.photo != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      ItemPhotoThumbnail(photo: batch.photo!, label: 'Disposal ${batch.id}', size: 64),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Disposal photo — tap to enlarge.',
-                          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
-                const Divider(),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(child: _Figure(label: 'Capital', value: AppFormat.peso(batch.capitalCentavos, whole: true))),
-                    Expanded(child: _Figure(label: 'Gross Grams', value: AppFormat.grams(batch.grossGrams), color: sc.gold)),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Figure(
-                        label: 'Gross Amount',
-                        value: AppFormat.peso(batch.grossAmountCentavos, whole: true),
-                      ),
-                    ),
-                    Expanded(
-                      child: _Figure(
-                        label: 'Net (shop profit)',
-                        value: AppFormat.pesoSigned(batch.netCentavos),
-                        color: isProfit ? sc.success : sc.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDim,
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'Gross amount and shop profit are independent figures — gross is what pays down a loan, '
-                    'profit (gross minus capital) is what the shop earns. One is never derived from the other.',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (commitment != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            InkWell(
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => CommitmentDetailScreen(commitmentId: commitment.id)),
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
-                decoration: BoxDecoration(
-                  color: sc.danger.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-                  border: Border.all(color: sc.danger.withValues(alpha: 0.25)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.handshake_outlined, size: 18, color: sc.danger),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                          children: [
-                            const TextSpan(text: 'This gross amount applies toward: '),
-                            TextSpan(
-                              text: commitment.lender,
-                              style: TextStyle(color: sc.danger, fontWeight: FontWeight.w700),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.chevron_right_rounded, color: sc.danger),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          // What actually left the shop. The karat totals are what the refiner
-          // settles against; the pieces underneath are what gets checked off
-          // against their weigh-in slip when the figures disagree.
-          Text('Delivered', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          if (karatBreakdown.isNotEmpty)
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final entry in karatBreakdown)
-                  _KaratGramChip(karat: entry.key, grams: entry.value),
-              ],
-            ),
-          const SizedBox(height: AppSpacing.sm),
-          if (items.isEmpty)
-            Text(
-              'The pieces in this batch are no longer on record.',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-            )
-          else
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
             Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: AppColors.cardSurface,
                 borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                 border: Border.all(color: AppColors.outline),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (var i = 0; i < items.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _DeliveredItemRow(item: items[i]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${batch.branch.label} · ${batch.itemIds.length} item(s)', style: AppTextStyles.titleMedium),
+                      Text(AppFormat.dateShort(batch.date), style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+                    ],
+                  ),
+                  if (batch.photo != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        ItemPhotoThumbnail(photo: batch.photo!, label: 'Disposal ${batch.id}', size: 64),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Disposal photo — tap to enlarge.',
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
+                  const SizedBox(height: AppSpacing.md),
+                  const Divider(),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(child: _Figure(label: 'Capital', value: AppFormat.peso(batch.capitalCentavos, whole: true))),
+                      Expanded(child: _Figure(label: 'Gross Grams', value: AppFormat.grams(batch.grossGrams), color: sc.gold)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Figure(
+                          label: 'Gross Amount',
+                          value: AppFormat.peso(batch.grossAmountCentavos, whole: true),
+                        ),
+                      ),
+                      Expanded(
+                        child: _Figure(
+                          label: 'Net (shop profit)',
+                          value: AppFormat.pesoSigned(batch.netCentavos),
+                          color: isProfit ? sc.success : sc.danger,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDim,
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'Gross amount and shop profit are independent figures — gross is what pays down a loan, '
+                      'profit (gross minus capital) is what the shop earns. One is never derived from the other.',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (commitment != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              InkWell(
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => CommitmentDetailScreen(commitmentId: commitment.id)),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                  decoration: BoxDecoration(
+                    color: sc.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                    border: Border.all(color: sc.danger.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.handshake_outlined, size: 18, color: sc.danger),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                            children: [
+                              const TextSpan(text: 'This gross amount applies toward: '),
+                              TextSpan(
+                                text: commitment.lender,
+                                style: TextStyle(color: sc.danger, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: sc.danger),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            // What actually left the shop. The karat totals are what the refiner
+            // settles against; the pieces underneath are what gets checked off
+            // against their weigh-in slip when the figures disagree.
+            Text('Delivered', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            if (karatBreakdown.isNotEmpty)
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final entry in karatBreakdown)
+                    _KaratGramChip(karat: entry.key, grams: entry.value),
+                ],
+              ),
+            const SizedBox(height: AppSpacing.sm),
+            if (items.isEmpty)
+              Text(
+                'The pieces in this batch are no longer on record.',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _DeliveredItemRow(item: items[i]),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

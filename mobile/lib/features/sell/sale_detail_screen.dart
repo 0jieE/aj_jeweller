@@ -14,6 +14,7 @@ import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/receipt_actions.dart';
 import '../../core/widgets/record_activity.dart';
 import '../../core/widgets/status_badges.dart';
+import '../../core/navigation/layout.dart';
 
 /// One completed sale, as a record rather than a workflow step: what went
 /// out, at what weight and rate, to whom, and for how much.
@@ -39,50 +40,52 @@ class SaleDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Sale Record')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          _HeaderCard(sale: sale, totalGrams: totalGrams),
-          const SizedBox(height: AppSpacing.sm),
-          AccountabilityCard(
-            children: [
-              AttributionRow(
-                icon: Icons.shopping_bag_outlined,
-                label: 'Sold by',
-                userId: sale.submittedByUserId,
-                at: sale.date,
-              ),
-              AttributionRow(
-                icon: Icons.point_of_sale_outlined,
-                label: 'Payment received by',
-                userId: sale.receivedByUserId,
-                pendingText: 'Not yet received',
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('Items Sold', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          for (final line in sale.lineItems) ...[
-            _SaleLineCard(line: line),
+      body: DetailPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            _HeaderCard(sale: sale, totalGrams: totalGrams),
             const SizedBox(height: AppSpacing.sm),
+            AccountabilityCard(
+              children: [
+                AttributionRow(
+                  icon: Icons.shopping_bag_outlined,
+                  label: 'Sold by',
+                  userId: sale.submittedByUserId,
+                  at: sale.date,
+                ),
+                AttributionRow(
+                  icon: Icons.point_of_sale_outlined,
+                  label: 'Payment received by',
+                  userId: sale.receivedByUserId,
+                  pendingText: 'Not yet received',
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('Items Sold', style: AppTextStyles.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            for (final line in sale.lineItems) ...[
+              _SaleLineCard(line: line),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            ReceiptActions(
+              recordId: sale.id,
+              kind: ReceiptKind.sale,
+              branch: sale.branch,
+              counterparty: sale.customerName,
+              totalCentavos: sale.totalAmountCentavos,
+              buildReceipt: () => ReceiptService.sale(sale: sale),
+              buildText: () => ReceiptService.saleText(sale: sale),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Activity', style: AppTextStyles.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            RecordActivityList(entries: repo.logsForRecord(sale.id)),
+            const SizedBox(height: AppSpacing.lg),
           ],
-          const SizedBox(height: AppSpacing.md),
-          ReceiptActions(
-            recordId: sale.id,
-            kind: ReceiptKind.sale,
-            branch: sale.branch,
-            counterparty: sale.customerName,
-            totalCentavos: sale.totalAmountCentavos,
-            buildReceipt: () => ReceiptService.sale(sale: sale),
-            buildText: () => ReceiptService.saleText(sale: sale),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Activity', style: AppTextStyles.titleLarge),
-          const SizedBox(height: AppSpacing.sm),
-          RecordActivityList(entries: repo.logsForRecord(sale.id)),
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        ),
       ),
     );
   }

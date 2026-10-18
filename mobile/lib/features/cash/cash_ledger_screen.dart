@@ -58,9 +58,6 @@ class _CashLedgerScreenState extends State<CashLedgerScreen>
         title: const Text('Cash'),
         bottom: TabBar(
           controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'History'),
             Tab(text: 'Cash Entry'),

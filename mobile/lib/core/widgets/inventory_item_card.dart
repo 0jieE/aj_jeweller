@@ -15,7 +15,7 @@ import 'status_badges.dart';
 /// seen the way the counter sees it — pictures side by side, the way any shop
 /// catalogue is laid out. The same card serves both; only how many fit across
 /// changes.
-class InventoryItemCard extends StatelessWidget {
+class InventoryItemCard extends StatefulWidget {
   final Item item;
   final VoidCallback? onTap;
   final bool showVerification;
@@ -28,7 +28,19 @@ class InventoryItemCard extends StatelessWidget {
   });
 
   @override
+  State<InventoryItemCard> createState() => _InventoryItemCardState();
+}
+
+class _InventoryItemCardState extends State<InventoryItemCard> {
+  /// Only ever true where there is a pointer — a card on a phone never
+  /// hovers, so this costs a touch screen nothing.
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
+    final onTap = widget.onTap;
+    final showVerification = widget.showVerification;
     final sc = context.semanticColors;
     final isParentLot = item.hasPartitions;
     // A lot with nothing left recedes rather than competing with live stock.
@@ -38,82 +50,134 @@ class InventoryItemCard extends StatelessWidget {
     // tinted rather than only tagged: green for stock to be resold, red for
     // material headed to the melt, slate for silver.
     final (tint, edge) = switch (item.type) {
-      ItemType.goods => (sc.buyGreen.withValues(alpha: 0.14), sc.buyGreen.withValues(alpha: 0.42)),
-      ItemType.scrap => (sc.danger.withValues(alpha: 0.11), sc.danger.withValues(alpha: 0.38)),
+      ItemType.goods => (
+        sc.buyGreen.withValues(alpha: 0.14),
+        sc.buyGreen.withValues(alpha: 0.42),
+      ),
+      ItemType.scrap => (
+        sc.danger.withValues(alpha: 0.11),
+        sc.danger.withValues(alpha: 0.38),
+      ),
       ItemType.silver => (
-          AppColors.silverDark.withValues(alpha: 0.14),
-          AppColors.silverDark.withValues(alpha: 0.46),
-        ),
+        AppColors.silverDark.withValues(alpha: 0.14),
+        AppColors.silverDark.withValues(alpha: 0.46),
+      ),
     };
     final radius = BorderRadius.circular(AppSpacing.cardRadius);
 
     return Opacity(
       opacity: muted ? 0.55 : 1,
-      child: Ink(
-        decoration: BoxDecoration(color: tint, borderRadius: radius, border: Border.all(color: edge)),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Photo(item: item, radius: radius, showVerification: showVerification),
-              // Whatever height is left after the photograph, and no more:
-              // the description gives way before the price does.
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 6, AppSpacing.sm, 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          item.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            height: 1.2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // The money is what the eye goes to on a shelf.
-                      Text(
-                        AppFormat.peso(
-                          isParentLot ? item.effectiveRemainingAmountCentavos : item.capitalAmountCentavos,
-                          whole: true,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.numericMedium.copyWith(
-                          color: item.type.isSilver ? AppColors.silverDark : sc.gold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${item.id}  ·  ${AppFormat.grams(isParentLot ? item.effectiveRemainingGrams : item.weightGrams)}'
-                        '${isParentLot ? ' of ${AppFormat.grams(item.effectiveOriginalGrams)}' : ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.numericSmall.copyWith(color: AppColors.textSecondary),
-                      ),
-                      const Spacer(),
-                      // Status last, small: it qualifies the piece rather
-                      // than announcing it. Only one badge — a card is too
-                      // narrow for a row of them, and the rest are on the
-                      // photograph above.
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: ItemStatusBadge(status: item.itemStatus, compact: true),
-                      ),
-                    ],
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: radius,
+            // Under the pointer the card lifts a little and its edge firms
+            // up: on a wall of stock, that is how you know which one you are
+            // about to open.
+            border: Border.all(
+              color: _hovered && onTap != null ? AppColors.primaryBlue : edge,
+              width: _hovered && onTap != null ? 1.5 : 1,
+            ),
+            boxShadow: _hovered && onTap != null
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: radius,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Photo(
+                    item: item,
+                    radius: radius,
+                    showVerification: showVerification,
                   ),
-                ),
+                  // Whatever height is left after the photograph, and no more:
+                  // the description gives way before the price does.
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        6,
+                        AppSpacing.sm,
+                        6,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // The money is what the eye goes to on a shelf.
+                          Text(
+                            AppFormat.peso(
+                              isParentLot
+                                  ? item.effectiveRemainingAmountCentavos
+                                  : item.capitalAmountCentavos,
+                              whole: true,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.numericMedium.copyWith(
+                              color: item.type.isSilver
+                                  ? AppColors.silverDark
+                                  : sc.gold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${item.id}  ·  ${AppFormat.grams(isParentLot ? item.effectiveRemainingGrams : item.weightGrams)}'
+                            '${isParentLot ? ' of ${AppFormat.grams(item.effectiveOriginalGrams)}' : ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.numericSmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Status last, small: it qualifies the piece rather
+                          // than announcing it. Only one badge — a card is too
+                          // narrow for a row of them, and the rest are on the
+                          // photograph above.
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ItemStatusBadge(
+                              status: item.itemStatus,
+                              compact: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -128,7 +192,11 @@ class _Photo extends StatelessWidget {
   final BorderRadius radius;
   final bool showVerification;
 
-  const _Photo({required this.item, required this.radius, required this.showVerification});
+  const _Photo({
+    required this.item,
+    required this.radius,
+    required this.showVerification,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -138,13 +206,20 @@ class _Photo extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.only(topLeft: radius.topLeft, topRight: radius.topRight),
+            borderRadius: BorderRadius.only(
+              topLeft: radius.topLeft,
+              topRight: radius.topRight,
+            ),
             child: item.hasPhoto
                 ? Image.memory(item.photo!, fit: BoxFit.cover)
                 : Container(
                     color: AppColors.surfaceDim,
                     alignment: Alignment.center,
-                    child: const Icon(Icons.photo_camera_outlined, size: 28, color: AppColors.textDisabled),
+                    child: const Icon(
+                      Icons.photo_camera_outlined,
+                      size: 28,
+                      color: AppColors.textDisabled,
+                    ),
                   ),
           ),
           Positioned(

@@ -16,6 +16,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/record_activity.dart';
 import '../../core/widgets/search_field.dart';
 import 'log_detail_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Everything anyone has done in the shop, newest first: who, what, when,
 /// and to which record.
@@ -69,98 +70,100 @@ class _TransactionLogsScreenState extends State<TransactionLogsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Transaction Logs')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.md,
-              AppSpacing.md,
-              0,
-            ),
-            child: SearchField(
-              hintText: 'Search by action, person, or record id',
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                0,
               ),
-              children: [
-                FilterMenuChip<LogCategory>(
-                  label: _category?.label ?? 'All areas',
-                  active: _category != null,
-                  allLabel: 'All areas',
-                  values: LogCategory.values,
-                  labelOf: (c) => c.label,
-                  onChanged: (v) => setState(() => _category = v),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                FilterMenuChip<AppUser>(
-                  label: _person?.name ?? 'All staff',
-                  active: _person != null,
-                  allLabel: 'All staff',
-                  values: StaffDirectory.all,
-                  labelOf: (u) => '${u.name} · ${u.role.shortLabel}',
-                  onChanged: (v) => setState(() => _person = v),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                DateRangeChip(
-                  range: _dateRange,
-                  onChanged: (v) => setState(() => _dateRange = v),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.xs,
-              AppSpacing.md,
-              AppSpacing.xs,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${logs.length} entr${logs.length == 1 ? 'y' : 'ies'}'
-                '${branchId == null ? ' · both branches' : ' · ${branchId.label}'}',
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+              child: SearchField(
+                hintText: 'Search by action, person, or record id',
+                onChanged: (v) => setState(() => _query = v),
               ),
             ),
-          ),
-          Expanded(
-            child: logs.isEmpty
-                ? const EmptyState(
-                    icon: Icons.history_rounded,
-                    title: 'No entries match',
-                    message:
-                        'Every purchase, release, sale, disposal, and correction is recorded here.',
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-                    itemCount: logs.length,
-                    itemBuilder: (context, i) {
-                      final entry = logs[i];
-                      final showDay =
-                          i == 0 || !_sameDay(logs[i - 1].at, entry.at);
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (showDay) _DayHeader(day: entry.at),
-                          _LogTile(entry: entry),
-                        ],
-                      );
-                    },
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                children: [
+                  FilterMenuChip<LogCategory>(
+                    label: _category?.label ?? 'All areas',
+                    active: _category != null,
+                    allLabel: 'All areas',
+                    values: LogCategory.values,
+                    labelOf: (c) => c.label,
+                    onChanged: (v) => setState(() => _category = v),
                   ),
-          ),
-        ],
+                  const SizedBox(width: AppSpacing.sm),
+                  FilterMenuChip<AppUser>(
+                    label: _person?.name ?? 'All staff',
+                    active: _person != null,
+                    allLabel: 'All staff',
+                    values: StaffDirectory.all,
+                    labelOf: (u) => '${u.name} · ${u.role.shortLabel}',
+                    onChanged: (v) => setState(() => _person = v),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  DateRangeChip(
+                    range: _dateRange,
+                    onChanged: (v) => setState(() => _dateRange = v),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${logs.length} entr${logs.length == 1 ? 'y' : 'ies'}'
+                  '${branchId == null ? ' · both branches' : ' · ${branchId.label}'}',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: logs.isEmpty
+                  ? const EmptyState(
+                      icon: Icons.history_rounded,
+                      title: 'No entries match',
+                      message:
+                          'Every purchase, release, sale, disposal, and correction is recorded here.',
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+                      itemCount: logs.length,
+                      itemBuilder: (context, i) {
+                        final entry = logs[i];
+                        final showDay =
+                            i == 0 || !_sameDay(logs[i - 1].at, entry.at);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (showDay) _DayHeader(day: entry.at),
+                            _LogTile(entry: entry),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

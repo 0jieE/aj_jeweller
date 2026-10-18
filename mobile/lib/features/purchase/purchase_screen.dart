@@ -8,6 +8,7 @@ import '../../core/theme/app_text_styles.dart';
 import 'new_purchase_screen.dart';
 import 'purchase_list_screen.dart';
 import 'verification_queue_screen.dart';
+import '../../core/navigation/layout.dart';
 
 enum _PurchaseView { list, queue }
 
@@ -36,22 +37,24 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
     final view = _view ?? (canQueue && !canCreate ? _PurchaseView.queue : _PurchaseView.list);
 
     return Scaffold(
-      body: Column(
-        children: [
-          if (canQueue)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
-              child: _ViewToggle(
-                view: view,
-                onChanged: (v) => setState(() => _view = v),
+      body: ReadableWidth(
+        child: Column(
+          children: [
+            if (canQueue)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+                child: _ViewToggle(
+                  view: view,
+                  onChanged: (v) => setState(() => _view = v),
+                ),
               ),
+            Expanded(
+              child: view == _PurchaseView.list
+                  ? const PurchaseListScreen()
+                  : const VerificationQueueScreen(),
             ),
-          Expanded(
-            child: view == _PurchaseView.list
-                ? const PurchaseListScreen()
-                : const VerificationQueueScreen(),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: (canCreate && view == _PurchaseView.list)
           ? FloatingActionButton.extended(

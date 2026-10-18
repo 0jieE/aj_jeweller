@@ -15,6 +15,7 @@ import '../../core/widgets/partial_progress_bar.dart';
 import '../../core/widgets/status_badges.dart';
 import 'commitment_detail_screen.dart';
 import 'commitment_form_screen.dart';
+import '../../core/navigation/layout.dart';
 
 /// Every commitment for the current branch view — a liability list, not an
 /// asset one. The header total and each entry's remaining balance are
@@ -43,36 +44,38 @@ class _CommitmentListScreenState extends State<CommitmentListScreen> {
     final filtered = _statusFilter == null ? ledgers : ledgers.where((l) => l.status == _statusFilter).toList();
 
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          _TotalOutstandingCard(totalOutstanding: totalOutstanding, count: ledgers.length),
-          const SizedBox(height: AppSpacing.md),
-          _StatusFilterBar(
-            selected: _statusFilter,
-            onSelected: (v) => setState(() => _statusFilter = v),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-              child: EmptyState(
-                icon: Icons.handshake_outlined,
-                title: 'No commitments match',
-                message: 'Try a different status filter.',
-              ),
-            )
-          else
-            for (final ledger in filtered) ...[
-              _CommitmentCard(
-                ledger: ledger,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => CommitmentDetailScreen(commitmentId: ledger.commitment.id)),
+      body: ReadableWidth(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            _TotalOutstandingCard(totalOutstanding: totalOutstanding, count: ledgers.length),
+            const SizedBox(height: AppSpacing.md),
+            _StatusFilterBar(
+              selected: _statusFilter,
+              onSelected: (v) => setState(() => _statusFilter = v),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (filtered.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: EmptyState(
+                  icon: Icons.handshake_outlined,
+                  title: 'No commitments match',
+                  message: 'Try a different status filter.',
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-        ],
+              )
+            else
+              for (final ledger in filtered) ...[
+                _CommitmentCard(
+                  ledger: ledger,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => CommitmentDetailScreen(commitmentId: ledger.commitment.id)),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+          ],
+        ),
       ),
       floatingActionButton: role.canManageCommitments
           ? FloatingActionButton.extended(

@@ -9,6 +9,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/formatters.dart';
 import '../../core/widgets/numeric_input_field.dart';
+import '../../core/navigation/layout.dart';
 
 /// A new loan commitment. Always starts `loanPending` — there is no field
 /// for cash-received here; that only happens as an explicit action on the
@@ -56,90 +57,92 @@ class _CommitmentFormScreenState extends State<CommitmentFormScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('New Commitment')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
-            decoration: BoxDecoration(
-              color: AppColors.info.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.hourglass_top_rounded, size: 18, color: AppColors.info),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'This starts as Loan Pending. Cash is not recorded as received until you '
-                    'confirm it on the commitment detail screen.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _lenderController,
-            decoration: const InputDecoration(labelText: 'Lender'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _DateField(date: _dateApproved, onChanged: (d) => setState(() => _dateApproved = d)),
-          const SizedBox(height: AppSpacing.md),
-          _BranchPicker(
-            value: _branch,
-            onChanged: (v) => setState(() {
-              _branch = v;
-              _branchTouched = true;
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Loan Amount',
-            kind: NumericInputKind.peso,
-            onChanged: (v) => setState(() => _amountCentavos = v != null ? (v * 100).round() : null),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            label: 'Rate (₱ per gram)',
-            kind: NumericInputKind.peso,
-            helperText: 'The lender\'s locked-in rate — reference only, never used to compute a disposal\'s gross.',
-            onChanged: (v) => setState(() => _rateCentavos = v != null ? (v * 100).round() : null),
-          ),
-          if (impliedGrams != null) ...[
-            const SizedBox(height: AppSpacing.sm),
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
               decoration: BoxDecoration(
-                color: context.semanticColors.goldSurface,
+                color: AppColors.info.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.scale_outlined, size: 16, color: context.semanticColors.goldDark),
+                  const Icon(Icons.hourglass_top_rounded, size: 18, color: AppColors.info),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'Implies roughly ${AppFormat.grams(impliedGrams)} of gold at this rate.',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: context.semanticColors.goldDark,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      'This starts as Loan Pending. Cash is not recorded as received until you '
+                      'confirm it on the commitment detail screen.',
+                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _lenderController,
+              decoration: const InputDecoration(labelText: 'Lender'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _DateField(date: _dateApproved, onChanged: (d) => setState(() => _dateApproved = d)),
+            const SizedBox(height: AppSpacing.md),
+            _BranchPicker(
+              value: _branch,
+              onChanged: (v) => setState(() {
+                _branch = v;
+                _branchTouched = true;
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Loan Amount',
+              kind: NumericInputKind.peso,
+              onChanged: (v) => setState(() => _amountCentavos = v != null ? (v * 100).round() : null),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              label: 'Rate (₱ per gram)',
+              kind: NumericInputKind.peso,
+              helperText: 'The lender\'s locked-in rate — reference only, never used to compute a disposal\'s gross.',
+              onChanged: (v) => setState(() => _rateCentavos = v != null ? (v * 100).round() : null),
+            ),
+            if (impliedGrams != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: context.semanticColors.goldSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.scale_outlined, size: 16, color: context.semanticColors.goldDark),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Implies roughly ${AppFormat.grams(impliedGrams)} of gold at this rate.',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: context.semanticColors.goldDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _isValid ? () => _save(context, repo, appState) : null,
+              child: const Text('Create Commitment'),
+            ),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: _isValid ? () => _save(context, repo, appState) : null,
-            child: const Text('Create Commitment'),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -13,6 +13,7 @@ import '../../core/widgets/formatters.dart';
 import '../../core/widgets/item_photo_field.dart';
 import '../../core/widgets/numeric_input_field.dart';
 import '../../core/widgets/value_display.dart';
+import '../../core/navigation/layout.dart';
 
 /// Entry for one piece within a purchase — weighed, karated, and priced.
 ///
@@ -137,160 +138,162 @@ class _PurchaseLineFormScreenState extends State<PurchaseLineFormScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.existing == null ? 'Add Item' : 'Edit Item')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          TextField(
-            controller: _descriptionController,
-            decoration: const InputDecoration(hintText: 'Description (e.g. 22K necklace, rope chain)'),
-            textCapitalization: TextCapitalization.sentences,
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('Type', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
-          const SizedBox(height: 6),
-          _TypeSelector(
-            value: _type,
-            onChanged: (v) => setState(() {
-              // Crossing between gold and silver invalidates the purity and
-              // the rate it loaded; goods <-> scrap keeps both.
-              if (v.isSilver != _type.isSilver) {
-                _karat = null;
-                _karatFieldKey = UniqueKey();
-                if (!_perGramEdited) {
-                  _perGramCentavos = null;
-                  _perGramFieldKey = UniqueKey();
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(hintText: 'Description (e.g. 22K necklace, rope chain)'),
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('Type', style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(height: 6),
+            _TypeSelector(
+              value: _type,
+              onChanged: (v) => setState(() {
+                // Crossing between gold and silver invalidates the purity and
+                // the rate it loaded; goods <-> scrap keeps both.
+                if (v.isSilver != _type.isSilver) {
+                  _karat = null;
+                  _karatFieldKey = UniqueKey();
+                  if (!_perGramEdited) {
+                    _perGramCentavos = null;
+                    _perGramFieldKey = UniqueKey();
+                  }
                 }
-              }
-              _type = v;
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
+                _type = v;
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
 
-          // Gross first, then what's left after stones and fittings come off —
-          // the order the piece is actually handled at the counter.
-          NumericInputField(
-            label: 'Original weight (as weighed)',
-            kind: NumericInputKind.grams,
-            initialValue: _grossWeight,
-            helperText: 'Everything on the scale, stones and clasps included',
-            onChanged: (v) => setState(() {
-              _grossWeight = v;
-              // Nothing deducted is the common case, so net follows gross
-              // until someone actually types a different net.
-              if (!_netEdited) {
-                _netWeight = v;
-                _netFieldKey = UniqueKey();
-                _amountFromRate();
-              }
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: NumericInputField(
-                  key: _netFieldKey,
-                  label: _type.isSilver ? 'Final weight (net silver)' : 'Final weight (net gold)',
-                  kind: NumericInputKind.grams,
-                  initialValue: _netWeight,
-                  onChanged: (v) => setState(() {
-                    _netWeight = v;
-                    _netEdited = true;
-                    _amountFromRate();
-                  }),
+            // Gross first, then what's left after stones and fittings come off —
+            // the order the piece is actually handled at the counter.
+            NumericInputField(
+              label: 'Original weight (as weighed)',
+              kind: NumericInputKind.grams,
+              initialValue: _grossWeight,
+              helperText: 'Everything on the scale, stones and clasps included',
+              onChanged: (v) => setState(() {
+                _grossWeight = v;
+                // Nothing deducted is the common case, so net follows gross
+                // until someone actually types a different net.
+                if (!_netEdited) {
+                  _netWeight = v;
+                  _netFieldKey = UniqueKey();
+                  _amountFromRate();
+                }
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: NumericInputField(
+                    key: _netFieldKey,
+                    label: _type.isSilver ? 'Final weight (net silver)' : 'Final weight (net gold)',
+                    kind: NumericInputKind.grams,
+                    initialValue: _netWeight,
+                    onChanged: (v) => setState(() {
+                      _netWeight = v;
+                      _netEdited = true;
+                      _amountFromRate();
+                    }),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              SizedBox(
-                width: 118,
-                child: _KaratPicker(
-                  key: _karatFieldKey,
-                  value: _karat,
-                  type: _type,
-                  repo: repo,
-                  onChanged: (v) => setState(() {
-                    _karat = v;
-                    _applySetupRate(repo);
-                    _amountFromRate();
-                  }),
+                const SizedBox(width: AppSpacing.md),
+                SizedBox(
+                  width: 118,
+                  child: _KaratPicker(
+                    key: _karatFieldKey,
+                    value: _karat,
+                    type: _type,
+                    repo: repo,
+                    onChanged: (v) => setState(() {
+                      _karat = v;
+                      _applySetupRate(repo);
+                      _amountFromRate();
+                    }),
+                  ),
                 ),
+              ],
+            ),
+            if (deducted != null && deducted > 0.0005) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Deducting ${AppFormat.grams(deducted)} of stones and fittings.',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
               ),
             ],
-          ),
-          if (deducted != null && deducted > 0.0005) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Deducting ${AppFormat.grams(deducted)} of stones and fittings.',
-              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-          if (deducted != null && deducted < -0.0005) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Final weight cannot exceed the original weight.',
-              style: AppTextStyles.caption.copyWith(color: AppColors.danger),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            key: _perGramFieldKey,
-            label: 'Price per gram',
-            kind: NumericInputKind.peso,
-            initialValue: _perGramCentavos == null ? null : _perGramCentavos! / 100,
-            helperText: rate == null
-                ? (_type.isSilver ? 'Pick a purity to load the setup rate' : 'Pick a karat to load the setup rate')
-                : _perGramEdited
-                    ? 'Setup rate for ${AppFormat.karat(_karat!)} is ${AppFormat.peso(rate)}'
-                    : 'From rate setup — edit to quote a different rate',
-            onChanged: (v) => setState(() {
-              _perGramCentavos = v == null ? null : (v * 100).round();
-              _perGramEdited = true;
-              _amountFromRate();
-            }),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          NumericInputField(
-            key: _amountFieldKey,
-            label: 'Purchase Amount',
-            kind: NumericInputKind.peso,
-            initialValue: _amountCentavos == null ? null : _amountCentavos! / 100,
-            helperText: 'Weight x rate — or type a total and the rate follows',
-            onChanged: (v) => setState(() {
-              _amountCentavos = v == null ? null : (v * 100).round();
-              _rateFromAmount();
-            }),
-          ),
-          if (_perGramCentavos != null && _netWeight != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            ValueDisplay(
-              label: '${AppFormat.grams(_netWeight!)} × ${AppFormat.peso(_perGramCentavos!)}/g',
-              value: AppFormat.peso((_perGramCentavos! * _netWeight!).round()),
-              origin: FigureOrigin.derived,
-            ),
-            if (rate != null && _perGramCentavos != rate)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Text(
-                  _perGramCentavos! < rate
-                      ? 'Quoted ${AppFormat.peso(rate - _perGramCentavos!)}/g below the setup rate.'
-                      : 'Quoted ${AppFormat.peso(_perGramCentavos! - rate)}/g above the setup rate.',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                ),
+            if (deducted != null && deducted < -0.0005) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Final weight cannot exceed the original weight.',
+                style: AppTextStyles.caption.copyWith(color: AppColors.danger),
               ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              key: _perGramFieldKey,
+              label: 'Price per gram',
+              kind: NumericInputKind.peso,
+              initialValue: _perGramCentavos == null ? null : _perGramCentavos! / 100,
+              helperText: rate == null
+                  ? (_type.isSilver ? 'Pick a purity to load the setup rate' : 'Pick a karat to load the setup rate')
+                  : _perGramEdited
+                      ? 'Setup rate for ${AppFormat.karat(_karat!)} is ${AppFormat.peso(rate)}'
+                      : 'From rate setup — edit to quote a different rate',
+              onChanged: (v) => setState(() {
+                _perGramCentavos = v == null ? null : (v * 100).round();
+                _perGramEdited = true;
+                _amountFromRate();
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            NumericInputField(
+              key: _amountFieldKey,
+              label: 'Purchase Amount',
+              kind: NumericInputKind.peso,
+              initialValue: _amountCentavos == null ? null : _amountCentavos! / 100,
+              helperText: 'Weight x rate — or type a total and the rate follows',
+              onChanged: (v) => setState(() {
+                _amountCentavos = v == null ? null : (v * 100).round();
+                _rateFromAmount();
+              }),
+            ),
+            if (_perGramCentavos != null && _netWeight != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              ValueDisplay(
+                label: '${AppFormat.grams(_netWeight!)} × ${AppFormat.peso(_perGramCentavos!)}/g',
+                value: AppFormat.peso((_perGramCentavos! * _netWeight!).round()),
+                origin: FigureOrigin.derived,
+              ),
+              if (rate != null && _perGramCentavos != rate)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    _perGramCentavos! < rate
+                        ? 'Quoted ${AppFormat.peso(rate - _perGramCentavos!)}/g below the setup rate.'
+                        : 'Quoted ${AppFormat.peso(_perGramCentavos! - rate)}/g above the setup rate.',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            ItemPhotoField(
+              photo: _photo,
+              onChanged: (bytes) => setState(() => _photo = bytes),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _isValid ? _save : null,
+              child: Text(widget.existing == null ? 'Add to Purchase' : 'Save Item'),
+            ),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          ItemPhotoField(
-            photo: _photo,
-            onChanged: (bytes) => setState(() => _photo = bytes),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: _isValid ? _save : null,
-            child: Text(widget.existing == null ? 'Add to Purchase' : 'Save Item'),
-          ),
-        ],
+        ),
       ),
     );
   }

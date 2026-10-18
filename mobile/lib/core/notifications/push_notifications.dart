@@ -11,6 +11,7 @@ import '../models/item_status.dart';
 import '../sync/sync_service.dart';
 import 'notification_channel.dart';
 import 'push_service.dart';
+import '../navigation/app_shell.dart';
 
 /// So a notification tapped from the tray can open its record, whatever the
 /// app happened to be showing — or was not showing, having been closed.
@@ -100,5 +101,11 @@ Future<void> _openRecord(PushAlert alert) async {
     );
     return;
   }
-  navigator.push(MaterialPageRoute(builder: (_) => screen!));
+  // Into the pane the person is looking at, so a tapped notification does
+  // not throw away the frame around it on a desktop. Read from the live
+  // navigator rather than the context captured before the sync, which may
+  // by now be gone.
+  final current = appNavigatorKey.currentContext;
+  // ignore: use_build_context_synchronously
+  if (current != null) AppShell.openDetail(current, screen);
 }

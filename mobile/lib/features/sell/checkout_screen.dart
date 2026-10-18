@@ -11,6 +11,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/customer_fields.dart';
 import '../../core/widgets/formatters.dart';
+import '../../core/navigation/layout.dart';
 
 /// Confirms the order, captures who it's for, and hands it to the Cashier.
 /// The rep's job ends here — nothing on this screen implies payment has
@@ -52,74 +53,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Checkout')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          _OrderRecap(cart: cart),
-          const SizedBox(height: AppSpacing.md),
-          Text('Customer', style: AppTextStyles.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
-          CustomerFields(
-            initial: _customer,
-            onChanged: (details) => setState(() => _customer = details),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            controller: _noteController,
-            decoration: const InputDecoration(labelText: 'Note (optional)'),
-            maxLines: 2,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Customer intends to pay by',
-                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 6),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('Cash')),
-                  ButtonSegment(value: true, label: Text('Bank transfer')),
-                ],
-                selected: {_expectsBank},
-                onSelectionChanged: (s) => setState(() => _expectsBank = s.first),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'The Cashier records what actually arrives, and can split it '
-                'between cash and bank.',
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDim,
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            _OrderRecap(cart: cart),
+            const SizedBox(height: AppSpacing.md),
+            Text('Customer', style: AppTextStyles.titleMedium),
+            const SizedBox(height: AppSpacing.sm),
+            CustomerFields(
+              initial: _customer,
+              onChanged: (details) => setState(() => _customer = details),
             ),
-            child: Row(
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _noteController,
+              decoration: const InputDecoration(labelText: 'Note (optional)'),
+              maxLines: 2,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'This sends the order to the Cashier. Payment has not been received yet.',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                  ),
+                Text(
+                  'Customer intends to pay by',
+                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 6),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Cash')),
+                    ButtonSegment(value: true, label: Text('Bank transfer')),
+                  ],
+                  selected: {_expectsBank},
+                  onSelectionChanged: (s) => setState(() => _expectsBank = s.first),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'The Cashier records what actually arrives, and can split it '
+                  'between cash and bank.',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton(
-            onPressed: _isValid ? () => _submit(context, cart) : null,
-            child: Text(cart.editingSaleId != null ? 'Resubmit to Cashier' : 'Send to Cashier'),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDim,
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      'This sends the order to the Cashier. Payment has not been received yet.',
+                      style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _isValid ? () => _submit(context, cart) : null,
+              child: Text(cart.editingSaleId != null ? 'Resubmit to Cashier' : 'Send to Cashier'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/formatters.dart';
+import '../../core/navigation/layout.dart';
 
 /// What the phone still owes the server, what the server refused, and when
 /// the two last agreed.
@@ -31,75 +32,77 @@ class SyncStatusScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          _StatusCard(sync: sync),
-          const SizedBox(height: AppSpacing.md),
-          if (sync.pendingCount > 0) ...[
-            Text('Waiting to send (${sync.pendingCount})', style: AppTextStyles.titleMedium),
-            const SizedBox(height: AppSpacing.sm),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Column(
-                children: [
-                  for (var i = 0; i < sync.outbox.pending.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.schedule_rounded, size: 18, color: AppColors.textSecondary),
-                      title: Text(sync.outbox.pending[i].summary, style: AppTextStyles.bodyMedium),
-                      subtitle: Text(
-                        AppFormat.dateTimeShort(sync.outbox.pending[i].recordedAt),
-                        style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+      body: FormPane(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            _StatusCard(sync: sync),
             const SizedBox(height: AppSpacing.md),
-          ],
-          Row(
-            children: [
-              Expanded(child: Text('Refused changes (${refusals.length})', style: AppTextStyles.titleMedium)),
-              if (refusals.isNotEmpty)
-                TextButton(onPressed: sync.clearRefusals, child: const Text('Clear all')),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (refusals.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.cardSurface,
-                borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                border: Border.all(color: AppColors.outline),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle_rounded, color: context.semanticColors.success, size: 18),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Expanded(child: Text('Nothing has been refused.')),
-                ],
-              ),
-            )
-          else
-            for (final refusal in refusals) ...[
-              _RefusalCard(refusal: refusal),
+            if (sync.pendingCount > 0) ...[
+              Text('Waiting to send (${sync.pendingCount})', style: AppTextStyles.titleMedium),
               const SizedBox(height: AppSpacing.sm),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < sync.outbox.pending.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.schedule_rounded, size: 18, color: AppColors.textSecondary),
+                        title: Text(sync.outbox.pending[i].summary, style: AppTextStyles.bodyMedium),
+                        subtitle: Text(
+                          AppFormat.dateTimeShort(sync.outbox.pending[i].recordedAt),
+                          style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
             ],
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Server: ${ApiConfig.baseUrl}',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textDisabled),
-          ),
-        ],
+            Row(
+              children: [
+                Expanded(child: Text('Refused changes (${refusals.length})', style: AppTextStyles.titleMedium)),
+                if (refusals.isNotEmpty)
+                  TextButton(onPressed: sync.clearRefusals, child: const Text('Clear all')),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (refusals.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, color: context.semanticColors.success, size: 18),
+                    const SizedBox(width: AppSpacing.sm),
+                    const Expanded(child: Text('Nothing has been refused.')),
+                  ],
+                ),
+              )
+            else
+              for (final refusal in refusals) ...[
+                _RefusalCard(refusal: refusal),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Server: ${ApiConfig.baseUrl}',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption.copyWith(color: AppColors.textDisabled),
+            ),
+          ],
+        ),
       ),
     );
   }
