@@ -1,0 +1,40 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head"><h1>Purchases</h1></header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  <label>Status
+    <select name="status">
+      <option value="">Any</option>
+      {% for value, name in status_choices %}<option value="{{ value }}"{% if f.status == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  {% include "office/_filters.html" with placeholder="Customer, contact or purchase id" %}
+</form>
+
+<section id="results" class="card">
+  <table class="table">
+    <thead><tr><th>Date</th><th>Purchase</th><th>Branch</th><th>Customer</th><th class="num">Pieces</th><th class="num">Amount</th><th>Status</th><th>Encoded by</th><th>Cash released by</th></tr></thead>
+    <tbody>
+    {% for batch in page %}
+      <tr>
+        <td class="nowrap">{{ batch.date|when }}</td>
+        <td><a class="record-id" href="{% url 'office:purchase' batch.id %}">{{ batch.id }}</a></td>
+        <td>{{ batch.branch_id|label:"BranchId" }}</td>
+        <td>{{ batch.customer_name }}</td>
+        <td class="num">{{ batch.line_count }}</td>
+        <td class="num"><span class="money money--gold">{{ batch.total|peso }}</span></td>
+        <td>{% include "office/_status.html" with status=batch.verification_status %}</td>
+        <td>{{ batch.submitted_by.name|default:"—" }}</td>
+        <td>{{ batch.released_by.name|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="9" class="muted">No purchases match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% include "office/_pager.html" %}
+</section>
+{% endblock %}

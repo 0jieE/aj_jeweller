@@ -10,6 +10,9 @@ urlpatterns = [
     path("api/v1/", include("shop.api.urls")),
     path("admin/", admin.site.urls),
     path("admin", RedirectView.as_view(url="/admin/")),  # APPEND_SLASH is off for the API
+    # The back office: server-rendered pages for the Superuser (office/).
+    path("administrator/", include("office.urls")),
+    path("administrator", RedirectView.as_view(url="/administrator/")),
 ]
 
 if settings.DEBUG:
@@ -17,7 +20,8 @@ if settings.DEBUG:
 
 # Last: everything else belongs to the desktop app (its routes return index.html;
 # its files are served by WhiteNoise before reaching Django). The API, the admin,
-# media and static files are never the app's.
+# the back office, media and static files are never the app's.
 urlpatterns += [
-    re_path(r"^(?!api(?:/|$)|admin(?:/|$)|media/|static/)(?P<path>.*)$", webapp.spa, name="webapp"),
+    re_path(r"^(?!api(?:/|$)|admin(?:/|$)|administrator(?:/|$)|media/|static/)(?P<path>.*)$", webapp.spa,
+            name="webapp"),
 ]

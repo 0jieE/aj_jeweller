@@ -1,0 +1,49 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <p class="crumbs no-print"><a href="{% url 'office:purchases' %}">Purchases</a></p>
+  <h1>Purchase <span class="record-id">{{ batch.id }}</span> {% include "office/_status.html" with status=batch.verification_status %}</h1>
+</header>
+
+<section class="card">
+  <dl class="facts">
+    <dt>Customer</dt><dd>{% if batch.customer_id %}<a href="{% url 'office:customer' batch.customer_id %}">{{ batch.customer_name }}</a>{% else %}{{ batch.customer_name }}{% endif %}</dd>
+    <dt>Contact</dt><dd>{{ batch.customer_contact_number|default:"—" }}</dd>
+    <dt>Address</dt><dd>{{ batch.customer_address|default:"—" }}</dd>
+    <dt>Branch</dt><dd>{{ batch.branch.label }}</dd>
+    <dt>Date</dt><dd>{{ batch.date|when }}</dd>
+    <dt>Encoded by</dt><dd>{{ batch.submitted_by.name|default:"—" }} <span class="muted">({{ batch.submitted_by_role|label:"Role" }})</span></dd>
+    <dt>Cash released</dt><dd>{% if batch.released_at %}{{ batch.released_at|when }} by {{ batch.released_by.name|default:"—" }}{% else %}Not yet{% endif %}</dd>
+    {% if batch.verification_note %}<dt>Note</dt><dd>{{ batch.verification_note }}</dd>{% endif %}
+    <dt>Total</dt><dd><span class="money money--gold">{{ total|peso }}</span></dd>
+    {% if receipt %}<dt>Receipt</dt><dd><a href="{{ receipt.pdf.url }}" hx-boost="false" target="_blank">{{ receipt.filename }}</a></dd>{% endif %}
+  </dl>
+  {% if batch.release_proof_photo %}
+    <p><a href="{{ batch.release_proof_photo.url }}" hx-boost="false" target="_blank"><img class="photo" src="{{ batch.release_proof_photo.url }}" alt="Proof of cash released"></a></p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Pieces</h2>
+  <table class="table">
+    <thead><tr><th>Item</th><th>Description</th><th>Type</th><th>Purity</th><th class="num">Gross</th><th class="num">Net</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for item in lines %}
+      <tr>
+        <td><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a></td>
+        <td>{{ item.description }}</td>
+        <td>{% include "office/_type.html" with type=item.type %}</td>
+        <td>{{ item.karat|purity }}</td>
+        <td class="num"><span class="grams">{{ item.effective_gross_grams|grams }}</span></td>
+        <td class="num"><span class="grams">{{ item.effective_original_grams|grams }}</span></td>
+        <td class="num"><span class="money money--gold">{{ item.effective_original_amount|peso }}</span></td>
+        <td>{{ item.get_item_status_display }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% include "office/_history.html" %}
+{% endblock %}

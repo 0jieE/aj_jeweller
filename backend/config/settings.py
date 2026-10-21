@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "accounts",
     "shop",
     "notifications",
+    "office",  # the back office at /administrator/
 ]
 
 MIDDLEWARE = [

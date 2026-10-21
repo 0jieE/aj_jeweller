@@ -1,0 +1,29 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head"><h1>Customers</h1></header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  {% include "office/_filters.html" with no_branch=True placeholder="Name, contact, address or id" %}
+</form>
+
+<section id="results" class="card">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Contact</th><th>Address</th><th>First seen</th></tr></thead>
+    <tbody>
+    {% for person in page %}
+      <tr>
+        <td><a href="{% url 'office:customer' person.id %}">{{ person.name }}</a></td>
+        <td>{{ person.contact_number|default:"—" }}</td>
+        <td>{{ person.address|default:"—" }}</td>
+        <td class="nowrap">{{ person.first_seen|date:"M j, Y" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="muted">No customers match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% include "office/_pager.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,138 @@
+/* AJ Jeweler — the design language the app already uses, as CSS.
+ *
+ * Taken from mobile/lib/core/theme/. Use these rather than picking new
+ * colours: the counter app and the back office are one product, and a
+ * Cashier moving between a phone and the office screen should not feel the
+ * seam. If the app's theme changes, this file changes with it.
+ *
+ * Copy to backend/static/administrator/tokens.css (or wherever the admin's
+ * static lives) and import it first.
+ */
+
+:root {
+  /* Brand ------------------------------------------------------------- */
+  --blue: #0F3D73;          /* the app bar, primary buttons */
+  --blue-light: #3868A0;
+  --blue-dark: #08284F;
+  --blue-accent: #1E88E5;   /* links, selected state */
+
+  /* Surfaces ---------------------------------------------------------- */
+  --surface: #F7F9FC;       /* the page */
+  --surface-dim: #EDF1F7;   /* inset panels, table headers */
+  --card: #FFFFFF;
+  --outline: #D7DEE8;       /* every border in the app is this */
+
+  /* Text -------------------------------------------------------------- */
+  --text: #14202E;
+  --text-muted: #54626F;
+  --text-faint: #9AA6B2;
+
+  /* Gold — money, karats, anything weighed ------------------------------ */
+  --gold: #B8860B;
+  --gold-light: #E8C158;
+  --gold-dark: #7A5A08;
+  --gold-surface: #FBF2DC;
+
+  /* Silver -------------------------------------------------------------- */
+  --silver: #8A94A6;
+  --silver-dark: #4F5B6D;
+  --silver-surface: #EFF1F4;
+
+  /* The two directions money moves -------------------------------------- */
+  --buy: #2E7D46;           /* purchases, cash in */
+  --buy-surface: #E3F3E8;
+  --sell: #C1602F;          /* sales, cash out */
+  --sell-surface: #FBEAE0;
+
+  /* Status --------------------------------------------------------------- */
+  --success: #2E7D46;
+  --warning: #B8860B;
+  --danger: #B3261E;
+  --info: #1E88E5;
+  --neutral: #6B7684;
+
+  /* Spacing — the app's scale, so rhythm matches ------------------------- */
+  --s-xs: 4px;
+  --s-sm: 8px;
+  --s-md: 16px;
+  --s-lg: 24px;
+  --s-xl: 32px;
+  --s-xxl: 48px;
+
+  /* Shape ---------------------------------------------------------------- */
+  --r-card: 14px;
+  --r-input: 10px;
+  --r-badge: 8px;
+
+  /* Type ----------------------------------------------------------------- */
+  --font: 'Roboto', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --fs-display: 28px;
+  --fs-title: 19px;
+  --fs-body: 15px;
+  --fs-small: 13px;
+  --fs-caption: 12px;
+
+  /* Money and weights are read in columns, so they are tabular: digits
+     line up above each other and a wrong figure stands out. */
+  --font-numeric: 'Roboto', ui-monospace, 'Segoe UI', sans-serif;
+  --numeric-features: "tnum" 1;
+
+  /* Layout --------------------------------------------------------------- */
+  --readable: 1100px;       /* a list stops widening here */
+  --form-width: 640px;      /* a form is the width of a form, not a window */
+  --tap: 48px;              /* nothing clickable is smaller than this */
+}
+
+/* How the app uses them, as a starting point ----------------------------- */
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+}
+
+.money,
+.grams,
+.record-id {
+  font-family: var(--font-numeric);
+  font-feature-settings: var(--numeric-features);
+}
+
+/* Money is coloured by what it is, never decorated: gold for value held,
+   green for coming in, red for going out. */
+.money--gold { color: var(--gold); }
+.money--in   { color: var(--buy); }
+.money--out  { color: var(--danger); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--outline);
+  border-radius: var(--r-card);
+  padding: var(--s-md);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-xs);
+  padding: 3px var(--s-sm);
+  border-radius: var(--r-badge);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.badge--gold   { background: var(--gold-surface);   color: var(--gold-dark); }
+.badge--silver { background: var(--silver-surface); color: var(--silver-dark); }
+.badge--buy    { background: var(--buy-surface);    color: var(--buy); }
+.badge--sell   { background: var(--sell-surface);   color: var(--sell); }
+
+/* A report is printed as often as it is read: no navigation on paper, and
+   figures stay black. */
+@media print {
+  nav, .no-print, .toolbar { display: none !important; }
+  body { background: #fff; font-size: 11pt; }
+  .card { border: 1px solid #999; break-inside: avoid; }
+}

@@ -1,0 +1,74 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<section class="card">
+  <h1>Run a disposal</h1>
+  <p class="muted">Scrap (or silver) sold off to settle a loan. It moves no cash: the gross amount pays down the commitment.</p>
+
+  <form class="toolbar" method="get">
+    <label>Branch
+      <select name="branch">
+        <option value="">Pick a branch</option>
+        {% for b in branches %}<option value="{{ b.id }}"{% if branch.id == b.id %} selected{% endif %}>{{ b.label }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Metal
+      <select name="metal">
+        <option value="gold"{% if metal == "gold" %} selected{% endif %}>Gold scrap</option>
+        <option value="silver"{% if metal == "silver" %} selected{% endif %}>Silver</option>
+      </select>
+    </label>
+    <button class="button button--quiet" type="submit">Show the pool</button>
+  </form>
+</section>
+
+{% if branch %}
+<section class="card">
+  {% if error %}<p class="refusal">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ request.get_full_path }}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <h2>{{ branch.label }}: {% if silver %}silver on hand{% else %}scrap waiting for disposal{% endif %}</h2>
+    {% if pool %}
+    <table class="table">
+      <thead><tr><th></th><th>Item</th><th>Description</th><th>Purity</th><th class="num">Weight</th><th class="num">Capital</th></tr></thead>
+      <tbody>
+      {% for item in pool %}
+        <tr>
+          <td><input type="checkbox" name="items" value="{{ item.id }}" id="pick-{{ item.id }}"{% if item.id in form.items.value %} checked{% endif %}></td>
+          <td><label for="pick-{{ item.id }}" class="record-id">{{ item.id }}</label></td>
+          <td>{{ item.description }}</td>
+          <td>{{ item.karat|purity }}</td>
+          <td class="num"><span class="grams">{{ item.effective_remaining_grams|grams }}</span></td>
+          <td class="num"><span class="money money--gold">{{ item.effective_remaining_amount|peso }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">Nothing in the pool.</p>
+    {% endif %}
+
+    <h2>Settlement</h2>
+    {% if not loans %}<p class="muted">No received loan with a balance is open for {{ branch.label }}. Add or receive one under Loans first.</p>{% endif %}
+    <div class="field">
+      <label for="id_commitment">{{ form.commitment.label }}</label>
+      <select name="commitment" id="id_commitment">
+        <option value="">—</option>
+        {% for loan in loans %}<option value="{{ loan.commitment.id }}"{% if form.commitment.value == loan.commitment.id %} selected{% endif %}>{{ loan.commitment.lender }} · {{ loan.remaining_centavos|peso }} remaining{% if not loan.commitment.branch_id %} · company-wide{% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    {% for field in form %}{% if field.name != "items" and field.name != "commitment" %}
+      <div class="field{% if field.errors %} field--error{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for e in field.errors %}<small class="error">{{ e }}</small>{% endfor %}
+      </div>
+    {% endif %}{% endfor %}
+    <div class="toolbar">
+      <button class="button" type="submit">Complete the disposal</button>
+      <a href="{% url 'office:disposals' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

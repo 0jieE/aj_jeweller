@@ -346,6 +346,105 @@ When `DEBUG` is off, run `python manage.py collectstatic` and serve
 or proxy, list it in `DJANGO_CSRF_TRUSTED_ORIGINS`, for example
 `https://admin.example.com`.
 
+## Back office (`/administrator/`)
+
+The back office is a set of server-rendered pages at `/administrator/`, for
+work done at a desk: tables, filters, reports and printing. The app at `/`
+stays the counter. The office is a separate surface, not a second copy of the
+app.
+
+| Path | What it is | Who |
+| --- | --- | --- |
+| `/` | the Flutter app (counter and desktop PWA) | all staff, including the owner |
+| `/administrator/` | the back office (`office/`) | **Superuser only** |
+| `/admin/` | Django's own admin, unchanged | Superuser only |
+
+**Who gets in.** Only an active **Superuser**: whoever maintains the system.
+Everyone else is refused: the **Admin (the shop's owner)**, Supervisors,
+Cashiers, Appraisers and Sales Reps. The owner runs the shop from the app and
+loses nothing by not having this; the office reaches further into the records
+than any other screen, and a wrong move here changes history.
+
+- **Sign-in.** Name (or user id) and PIN, as in the app, with the same lockout.
+  The form is the admin site's (`config/admin_site.LoginForm`) with a narrower
+  rule.
+- **Every page checks the role,** not only the sign-in. `office/urls.py` wraps
+  every page in `superuser_only` in one place, so a page can't be added
+  without the check. A session that outlives a role change, or a bookmarked
+  URL, is refused on the next request.
+- **What a refusal looks like.** A plain sentence: this screen belongs to
+  whoever maintains the system, and their own work is in the app. It links to
+  the app and offers sign-out. It is not an error page.
+- **Not tied to `/admin/`'s setting.** The rule is fixed in code
+  (`office/access.py`), not `DJANGO_ADMIN_SITE_ROLES`, so widening Django's
+  admin never widens the office.
+
+**What's in it.**
+
+1. **Today.** Each branch's three cash balances, with today's money in and
+   out. The queues waiting on someone, per branch:
+   - purchases waiting for their cash
+   - sales waiting for payment
+   - anything returned for correction
+   - loans waiting for their cash
+   - scrap waiting for disposal
+
+   Also today's purchases and sales.
+2. **Records.** Purchases, sales, items, cash entries, customers, commitments
+   and disposal batches. Each is a filterable table (the app's filters: branch,
+   date range, status, type, search) with a detail page that ends in that
+   record's log entries.
+3. **Reports.** The four exports the app has (purchases, sales, expenses,
+   withdrawals). Pick a range and branch, preview the first 100 rows and the
+   total, then download CSV, Excel or PDF, or print.
+4. **Transaction log.** The whole trail, filterable by person, area, action,
+   record id, branch, dates and words in the summary. Record ids link to the
+   record.
+5. **Staff.** Add people, edit them, set a PIN, deactivate or reactivate, and
+   delete someone who never did anything.
+6. **Rates.** Today's gold and silver prices, change one, add a purity, put
+   back a past day's prices, and the full history.
+7. **Desk writes:**
+   - correct an item
+   - record a cash entry, move cash, correct or delete a hand-typed entry
+   - add a commitment and record its cash received, with a proof photo
+   - run a disposal batch from the pool against a received loan
+
+**The one rule: every write goes through `shop/services`.** A page never
+writes a model. Each form is one call to the same service function the API
+calls (`office/views/common.attempt` runs it under the shop's write lock). So
+the same rules apply: the payment that must match the order, the photo a
+release needs, who may do what. And each write leaves the same trail: one log
+row naming the Superuser, plus the `SyncChange` rows that tell the phones
+something moved. A refusal shows the service's own sentence on the form, and
+nothing is saved. If a page ever needs something no service does yet, add the
+function to `shop/services` and call it from both places.
+`office/tests/test_office.py` compares the log row and the sync rows of a
+page write against the same write through the API.
+
+**How it's built.** Django templates (`office/templates/office/`) and no build
+step:
+
+- **HTMX** (2.0.4) is vendored at `office/static/administrator/htmx.min.js`.
+  It loads as one script tag. Links and forms are boosted (no full reload),
+  and table filters swap only the table and update the URL.
+- **One stylesheet,** `office.css`. It imports `tokens.css` first, which is a
+  copy of the repository's `ADMIN_WEB_DESIGN_TOKENS.css`, the app's colours,
+  spacing and type. Money is gold, cash in green, cash out red, as in the app.
+  If the app's theme changes, copy the file again.
+- **Printing** drops the navigation and filters and prints figures in black.
+
+The office is served by Django like the API. It resolves before the desktop
+app's catch-all, and any unknown address under `/administrator/` is the
+office's own 404, never the app's `index.html`. It works whether or not
+`WEB_APP_ROOT` is set. Its CSS and JS are ordinary static files, which
+`collectstatic` picks up on deploy.
+
+**`/admin/` now has the same audience.** Django's admin is still there and
+unchanged. Once the office covers everything you use `/admin/` for, consider
+turning `/admin/` off (remove its two lines from `config/urls.py`). Nothing
+else depends on it.
+
 ## Seed data and the phone's file format
 
 - `python manage.py seed_demo [--reset] [--pin 1234]` loads the app's demo
@@ -555,7 +654,7 @@ API:
 /                       the app (index.html)
 /main.dart.js, /assets/…  its files
 /cash, /purchases/…     index.html again: the app owns its routes, so a reload on any page works
-/api/v1/  /admin/  /media/  /static/     never the app
+/api/v1/  /admin/  /administrator/  /media/  /static/     never the app
 ```
 
 On the same origin the app calls `/api/v1/` on its own host, so there is no
@@ -707,6 +806,7 @@ config/            settings, root urls
 accounts/          the staff model, PIN sign-in, staff rules (services.py) and endpoints (api.py)
 notifications/     devices, the push outbox, the FCM client, who-is-told rules (events.py), commands
 config/admin_site.py   the admin site: PIN sign-in, PIN change;  */admin.py  what each model shows
+office/            the back office at /administrator/: Superuser-only pages that call shop/services
 shop/
   models.py        the schema
   enums.py         the app's enum names and labels

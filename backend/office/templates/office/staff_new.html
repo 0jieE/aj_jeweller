@@ -1,0 +1,16 @@
+{% extends "office/base.html" %}
+{% block content %}
+<section class="card form-card">
+  <h1>Add staff</h1>
+  <p class="muted">They sign in to the app with their name and this PIN. Tell them the PIN in person.</p>
+  {% if error %}<p class="refusal">{{ error }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "office/_fields.html" %}
+    <div class="toolbar">
+      <button class="button" type="submit">Add</button>
+      <a href="{% url 'office:staff' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

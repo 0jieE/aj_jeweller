@@ -1,0 +1,20 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<section class="card form-card">
+  <h1>{{ title }}</h1>
+  <p>This removes the entry{% if entry.is_transfer %}, and the other half of the transfer with it{% endif %}. Use it only for an entry recorded by mistake. The log keeps what it was, who removed it and why.</p>
+  <ul>
+    {% for e in group %}<li><span class="record-id">{{ e.id }}</span> · {{ e.branch_id|label:"BranchId" }} {{ e.get_account_display }} · {{ e.get_type_display }} <span class="money {{ e|flow }}">{{ e.signed_amount_centavos|peso }}</span> · {{ e.note }}</li>{% endfor %}
+  </ul>
+  {% if error %}<p class="refusal">{{ error }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "office/_fields.html" %}
+    <div class="toolbar">
+      <button class="button button--danger" type="submit">Delete</button>
+      <a href="{% url 'office:cash-entry' entry.id %}">Keep it</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <p class="crumbs no-print"><a href="{% url 'office:sales' %}">Sales</a></p>
+  <h1>Sale <span class="record-id">{{ sale.id }}</span> {% include "office/_status.html" with status=sale.verification_status %}</h1>
+</header>
+
+<section class="card">
+  <dl class="facts">
+    <dt>Customer</dt><dd>{% if sale.customer_id %}<a href="{% url 'office:customer' sale.customer_id %}">{{ sale.customer_name }}</a>{% else %}{{ sale.customer_name }}{% endif %}</dd>
+    <dt>Contact</dt><dd>{{ sale.customer_contact_number|default:"—" }}</dd>
+    <dt>Branch</dt><dd>{{ sale.branch.label }}</dd>
+    <dt>Date</dt><dd>{{ sale.date|when }}</dd>
+    <dt>Sales rep</dt><dd>{{ sale.submitted_by.name|default:"—" }} <span class="muted">({{ sale.submitted_by_role|label:"Role" }})</span></dd>
+    <dt>Payment received by</dt><dd>{{ sale.received_by.name|default:"Not yet" }}</dd>
+    <dt>Total</dt><dd><span class="money money--gold">{{ total|peso }}</span></dd>
+    <dt>Paid in cash</dt><dd><span class="money">{{ sale.cash_centavos|peso }}</span></dd>
+    <dt>Paid to the bank</dt><dd><span class="money">{{ sale.bank_centavos|peso }}</span></dd>
+    {% if sale.note %}<dt>Note</dt><dd>{{ sale.note }}</dd>{% endif %}
+    {% if sale.verification_note %}<dt>Returned because</dt><dd>{{ sale.verification_note }}</dd>{% endif %}
+    {% if receipt %}<dt>Receipt</dt><dd><a href="{{ receipt.pdf.url }}" hx-boost="false" target="_blank">{{ receipt.filename }}</a></dd>{% endif %}
+  </dl>
+</section>
+
+<section class="card">
+  <h2>Pieces</h2>
+  <table class="table">
+    <thead><tr><th>Item</th><th>Description</th><th>Purity</th><th class="num">Weight</th><th class="num">Per gram</th><th class="num">Price</th></tr></thead>
+    <tbody>
+    {% for line in lines %}
+      <tr>
+        <td><a class="record-id" href="{% url 'office:item' line.item_id %}">{{ line.item_id }}</a></td>
+        <td>{{ line.item_snapshot.description|default:line.item.description }}</td>
+        <td>{{ line.item.karat|purity }}</td>
+        <td class="num"><span class="grams">{{ line.effective_final_grams|grams }}</span></td>
+        <td class="num"><span class="money">{{ line.price_per_gram_centavos|peso }}</span></td>
+        <td class="num"><span class="money money--gold">{{ line.negotiated_price_centavos|peso }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% include "office/_history.html" %}
+{% endblock %}

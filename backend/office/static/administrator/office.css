@@ -1,0 +1,125 @@
+/* The office's one stylesheet. The app's tokens come first and are the only
+   colours, spacing, radii and type sizes used here: the counter and the
+   office are one product. Money is gold, cash in is green, cash out is red. */
+@import url("tokens.css");
+
+@font-face { font-family: "Roboto"; font-weight: 400; src: url("fonts/Roboto-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Roboto"; font-weight: 700; src: url("fonts/Roboto-Bold.ttf") format("truetype"); font-display: swap; }
+
+* { box-sizing: border-box; }
+body { line-height: 1.45; }
+h1 { font-size: var(--fs-display); margin: 0 0 var(--s-sm); font-weight: 700; }
+h2 { font-size: var(--fs-title); margin: 0 0 var(--s-md); }
+a { color: var(--blue-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.muted { color: var(--text-muted); }
+.small { font-size: var(--fs-small); }
+.nowrap { white-space: nowrap; }
+.error { color: var(--danger); display: block; }
+.record-id { color: var(--text-muted); }
+a.record-id { color: var(--blue-accent); }
+
+/* --- the bar ----------------------------------------------------------- */
+.topbar {
+  background: var(--blue); color: #fff;
+  display: flex; align-items: center; gap: var(--s-lg); flex-wrap: wrap;
+  padding: 0 var(--s-lg); min-height: 56px;
+}
+.topbar a { color: #fff; }
+.brand { font-weight: 700; font-size: var(--fs-title); white-space: nowrap; }
+.brand span { color: var(--gold-light); font-weight: 400; }
+.links { display: flex; flex-wrap: wrap; gap: var(--s-xs) var(--s-md); flex: 1; }
+.links a { padding: var(--s-sm) 0; opacity: .9; }
+.links a:hover { opacity: 1; text-decoration: none; border-bottom: 2px solid var(--gold-light); }
+.who { display: flex; gap: var(--s-sm); align-items: center; font-size: var(--fs-small); }
+.who .link-button { color: #fff; }
+@media (max-width: 700px) {
+  .topbar { padding: var(--s-sm) var(--s-md); gap: var(--s-xs) var(--s-md); }
+  .links { flex: 1 1 100%; order: 3; flex-wrap: nowrap; overflow-x: auto; }
+  .links a { white-space: nowrap; }
+}
+
+/* --- the page ---------------------------------------------------------- */
+.page { max-width: var(--readable); margin: 0 auto; padding: var(--s-lg) var(--s-md) var(--s-xxl); }
+.page > * + * { margin-top: var(--s-md); }
+.page-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-sm) var(--s-md); }
+.page-head h1 { flex: 1 1 auto; }
+.page-head > p { flex-basis: 100%; margin: 0; }
+.crumbs { flex-basis: 100%; margin: 0; font-size: var(--fs-small); }
+.grid { display: grid; gap: var(--s-md); }
+.grid--2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.narrow { max-width: 440px; margin: var(--s-xxl) auto 0; }
+.form-card { max-width: var(--form-width); }
+.quiet { color: var(--text-faint); }
+
+/* --- tables ------------------------------------------------------------ */
+.table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); }
+.table th { text-align: left; background: var(--surface-dim); color: var(--text-muted); font-weight: 600; }
+.table th, .table td { padding: var(--s-sm); border-bottom: 1px solid var(--outline); vertical-align: top; }
+.table tbody tr:hover { background: var(--surface); }
+.table--dense th, .table--dense td { padding: var(--s-xs) var(--s-sm); }
+.num, .table th.num { text-align: right; white-space: nowrap; }
+.table--dense td:first-child { white-space: nowrap; }
+.scroll { overflow-x: auto; }
+.changes { margin: var(--s-xs) 0 0; padding-left: var(--s-md); color: var(--text-muted); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-sm) var(--s-md); margin: 0; }
+.facts dt { color: var(--text-muted); }
+.facts dd { margin: 0; }
+.photo { max-height: 120px; border-radius: var(--r-input); border: 1px solid var(--outline); }
+.photo--large { max-height: 360px; max-width: 100%; }
+.pager { display: flex; gap: var(--s-md); align-items: center; justify-content: center; padding-top: var(--s-md); }
+
+/* --- forms and buttons --------------------------------------------------- */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--s-sm); align-items: center; }
+.filters { align-items: flex-end; gap: var(--s-md); }
+.filters label { display: flex; flex-direction: column; gap: var(--s-xs); font-size: var(--fs-caption); color: var(--text-muted); }
+.filters .grow { flex: 1 1 200px; }
+input, select, textarea {
+  font: inherit; color: var(--text); background: var(--card);
+  border: 1px solid var(--outline); border-radius: var(--r-input);
+  padding: var(--s-sm) var(--s-md); min-height: 40px;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue-accent); outline-offset: -1px; }
+input[type="checkbox"] { min-height: 0; width: 18px; height: 18px; }
+.field { display: flex; flex-direction: column; gap: var(--s-xs); margin-bottom: var(--s-md); }
+.field label { font-weight: 600; font-size: var(--fs-small); }
+.field small { color: var(--text-muted); font-size: var(--fs-caption); }
+.field--error input, .field--error select, .field--error textarea { border-color: var(--danger); }
+.field ul { list-style: none; padding: 0; margin: 0; }
+form.inline { display: flex; gap: var(--s-xs); align-items: center; }
+form.inline input { width: 9em; }
+.button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--tap); padding: 0 var(--s-lg);
+  background: var(--blue); color: #fff; border: 1px solid var(--blue); border-radius: var(--r-input);
+  font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+}
+.button:hover { background: var(--blue-dark); text-decoration: none; }
+.button--quiet { background: var(--card); color: var(--blue); border-color: var(--outline); min-height: 40px; }
+.button--quiet:hover { background: var(--surface-dim); }
+.button--danger { background: var(--card); color: var(--danger); border-color: var(--danger); }
+.button--danger:hover { background: var(--sell-surface); }
+.link-button { background: none; border: 0; padding: 0; font: inherit; color: var(--blue-accent); cursor: pointer; text-decoration: underline; }
+
+/* --- what the shop says -------------------------------------------------- */
+.refusal { background: var(--sell-surface); border: 1px solid var(--sell); color: var(--text); border-radius: var(--r-input); padding: var(--s-md); }
+.refusal p { margin: 0 0 var(--s-xs); }
+.message { margin: 0 0 var(--s-sm); padding: var(--s-sm) var(--s-md); border-radius: var(--r-input); background: var(--buy-surface); color: var(--buy); }
+.message--error { background: var(--sell-surface); color: var(--danger); }
+
+/* --- reports ------------------------------------------------------------- */
+.report-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--s-md); }
+.report-head h2 { margin: 0; }
+.report-head .total { font-size: var(--fs-title); margin: 0; }
+
+/* --- paper ---------------------------------------------------------------- */
+@media print {
+  .topbar, .filters, .messages, .pager { display: none !important; }
+  .page { max-width: none; padding: 0; }
+  .card { border-radius: 0; padding: 8pt; }
+  .table { font-size: 9pt; }
+  .table th { background: #eee; color: #000; }
+  .money, .money--gold, .money--in, .money--out { color: #000 !important; }
+  a { color: #000; }
+  .scroll { overflow: visible; }
+}

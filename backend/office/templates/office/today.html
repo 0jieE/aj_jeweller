@@ -1,0 +1,88 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <h1>The shop today</h1>
+  <p class="muted">{{ day|date:"l, F j, Y" }}</p>
+</header>
+
+<div class="grid grid--2">
+  {% for b in branches %}
+  <section class="card">
+    <h2>{{ b.branch.label }}</h2>
+    <table class="table">
+      <thead><tr><th>Cash</th><th class="num">Now</th><th class="num">In today</th><th class="num">Out today</th></tr></thead>
+      <tbody>
+      {% for account in b.accounts %}
+        <tr>
+          <td>{{ account.label }}</td>
+          <td class="num"><span class="money money--gold">{{ account.current_centavos|peso }}</span></td>
+          <td class="num"><span class="money money--in">{{ account.today_in_centavos|peso }}</span></td>
+          <td class="num"><span class="money money--out">{{ account.today_out_centavos|peso }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="small no-print"><a href="{% url 'office:cash-entries' %}?branch={{ b.branch.id }}">Cash entries</a></p>
+  </section>
+  {% endfor %}
+</div>
+
+<section class="card">
+  <h2>Waiting on someone</h2>
+  <table class="table">
+    <thead><tr><th></th>{% for name in branch_names %}<th class="num">{{ name }}</th>{% endfor %}<th class="num">Both</th></tr></thead>
+    <tbody>
+    {% for row in waiting %}
+      <tr{% if not row.total %} class="quiet"{% endif %}>
+        <td><a href="{{ row.url }}">{{ row.title }}</a></td>
+        {% for count in row.counts %}<td class="num">{{ count }}</td>{% endfor %}
+        <td class="num"><strong>{{ row.total }}</strong></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<div class="grid grid--2">
+  <section class="card">
+    <h2>Purchases today <span class="money money--gold">{{ purchases_total|peso }}</span></h2>
+    {% if purchases %}
+    <table class="table">
+      <thead><tr><th>Time</th><th>Purchase</th><th>Customer</th><th class="num">Amount</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for batch in purchases %}
+        <tr>
+          <td class="nowrap">{{ batch.date|time:"g:i A" }}</td>
+          <td><a class="record-id" href="{% url 'office:purchase' batch.id %}">{{ batch.id }}</a> <span class="muted">{{ batch.branch_id|label:"BranchId" }}</span></td>
+          <td>{{ batch.customer_name }}</td>
+          <td class="num"><span class="money money--gold">{{ batch.total|peso }}</span></td>
+          <td>{% include "office/_status.html" with status=batch.verification_status %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="muted">No purchases yet today.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Sales today <span class="money money--gold">{{ sales_total|peso }}</span></h2>
+    {% if sales %}
+    <table class="table">
+      <thead><tr><th>Time</th><th>Sale</th><th>Customer</th><th class="num">Amount</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for sale in sales %}
+        <tr>
+          <td class="nowrap">{{ sale.date|time:"g:i A" }}</td>
+          <td><a class="record-id" href="{% url 'office:sale' sale.id %}">{{ sale.id }}</a> <span class="muted">{{ sale.branch_id|label:"BranchId" }}</span></td>
+          <td>{{ sale.customer_name }}</td>
+          <td class="num"><span class="money money--gold">{{ sale.total_centavos|peso }}</span></td>
+          <td>{% include "office/_status.html" with status=sale.verification_status %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="muted">No sales yet today.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

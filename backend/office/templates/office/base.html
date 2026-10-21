@@ -1,0 +1,47 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · AJ Jeweler office</title>
+  <link rel="stylesheet" href="{% static 'administrator/office.css' %}">
+  {# htmx 2.0.4, vendored. Swap the friendly refusals (403, 404, 422) like any page. #}
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"40[34]","swap":true},{"code":"422","swap":true},{"code":"...","swap":false,"error":true}],"scrollIntoViewOnBoost":false}'>
+  <script src="{% static 'administrator/htmx.min.js' %}" defer></script>
+</head>
+<body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% if user.is_authenticated and user.role == "superuser" %}
+  <nav class="topbar">
+    <a class="brand" href="{% url 'office:today' %}">AJ Jeweler <span>office</span></a>
+    <div class="links">
+      <a href="{% url 'office:today' %}">Today</a>
+      <a href="{% url 'office:purchases' %}">Purchases</a>
+      <a href="{% url 'office:sales' %}">Sales</a>
+      <a href="{% url 'office:items' %}">Items</a>
+      <a href="{% url 'office:cash-entries' %}">Cash</a>
+      <a href="{% url 'office:customers' %}">Customers</a>
+      <a href="{% url 'office:commitments' %}">Loans</a>
+      <a href="{% url 'office:disposals' %}">Disposal</a>
+      <a href="{% url 'office:reports' %}">Reports</a>
+      <a href="{% url 'office:log' %}">Log</a>
+      <a href="{% url 'office:staff' %}">Staff</a>
+      <a href="{% url 'office:rates' %}">Rates</a>
+    </div>
+    <form class="who" method="post" action="{% url 'office:logout' %}">
+      {% csrf_token %}
+      <span>{{ user.name }}</span>
+      <button class="link-button" type="submit">Sign out</button>
+    </form>
+  </nav>
+  {% endif %}
+
+  <main class="page">
+    {% if messages %}
+      <div class="messages no-print">
+        {% for message in messages %}<p class="message message--{{ message.tags }}">{{ message }}</p>{% endfor %}
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

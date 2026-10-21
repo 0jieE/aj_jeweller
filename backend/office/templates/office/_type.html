@@ -1,0 +1,1 @@
+{% load office %}{% if type == "silver" %}<span class="badge badge--silver">Silver</span>{% elif type == "scrap" %}<span class="badge badge--sell">Scrap</span>{% else %}<span class="badge badge--gold">{{ type|label:"ItemType" }}</span>{% endif %}

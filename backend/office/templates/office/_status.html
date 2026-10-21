@@ -1,0 +1,1 @@
+{% load office %}{% if status == "verified" %}<span class="badge badge--buy">{{ status|label:"VerificationStatus" }}</span>{% elif status == "returnedForCorrection" %}<span class="badge badge--sell">{{ status|label:"VerificationStatus" }}</span>{% else %}<span class="badge badge--gold">{{ status|label:"VerificationStatus" }}</span>{% endif %}

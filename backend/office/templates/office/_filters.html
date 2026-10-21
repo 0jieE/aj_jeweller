@@ -1,0 +1,13 @@
+{# The filters every record list shares: branch, date range, search. A page puts its own selects (status, type) before this. #}
+{% if not no_branch %}
+<label>Branch
+  <select name="branch">
+    <option value="">Both branches</option>
+    {% for value, name in branch_choices %}<option value="{{ value }}"{% if f.branch == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+  </select>
+</label>
+{% endif %}
+<label>From <input type="date" name="from" value="{{ f.date_from|date:'Y-m-d' }}"></label>
+<label>To <input type="date" name="to" value="{{ f.date_to|date:'Y-m-d' }}"></label>
+<label class="grow">Search <input type="search" name="q" value="{{ f.q }}" placeholder="{{ placeholder|default:'Name or id' }}"></label>
+<noscript><button class="button" type="submit">Filter</button></noscript>

@@ -1,0 +1,1 @@
+{% load office %}{% if status == "loanPaid" %}<span class="badge badge--buy">{{ status|label:"CommitmentStatus" }}</span>{% elif status == "loanReceived" %}<span class="badge badge--gold">{{ status|label:"CommitmentStatus" }}</span>{% else %}<span class="badge badge--silver">{{ status|label:"CommitmentStatus" }}</span>{% endif %}

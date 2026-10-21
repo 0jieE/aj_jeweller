@@ -1,0 +1,53 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head no-print">
+  <h1>Reports</h1>
+  <p class="muted">The same exports as the app. Pick a report and a period, check the preview, then download or print it.</p>
+</header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  <label>Report
+    <select name="kind">
+      {% for value, name in kinds %}<option value="{{ value }}"{% if kind == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Branch
+    <select name="branch">
+      <option value="">Both branches</option>
+      {% for value, name in branch_choices %}<option value="{{ value }}"{% if f.branch == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>From <input type="date" name="from" value="{{ f.date_from|date:'Y-m-d' }}"></label>
+  <label>To <input type="date" name="to" value="{{ f.date_to|date:'Y-m-d' }}"></label>
+  <noscript><button class="button" type="submit">Preview</button></noscript>
+</form>
+
+<section id="results" class="card report">
+  <header class="report-head">
+    <div>
+      <h2>{{ report_title }}</h2>
+      <p class="muted">{{ scope }} · {% if f.date_from or f.date_to %}{{ f.date_from|date:"M j, Y"|default:"the start" }} to {{ f.date_to|date:"M j, Y"|default:"today" }}{% else %}all dates{% endif %}</p>
+    </div>
+    <p class="total">Total <span class="money money--gold">{{ table.total_centavos|peso }}</span> · {{ table.rows|length }} row{{ table.rows|length|pluralize }}</p>
+  </header>
+  <div class="toolbar no-print">
+    {% for fmt in formats %}<a class="button button--quiet" hx-boost="false" href="{% url 'office:report-download' fmt %}{% querystring page=None %}">Download {{ fmt|upper }}</a>{% endfor %}
+    <button class="button button--quiet" type="button" onclick="window.print()">Print</button>
+  </div>
+  <div class="scroll">
+  <table class="table table--dense">
+    <thead><tr>{% for h in table.headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in preview %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+    {% empty %}
+      <tr><td colspan="{{ table.headers|length }}" class="muted">Nothing in this period.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if table.rows|length > preview|length %}<p class="muted small">The preview shows the first {{ preview|length }} rows. The download and the PDF hold all {{ table.rows|length }}.</p>{% endif %}
+</section>
+{% endblock %}

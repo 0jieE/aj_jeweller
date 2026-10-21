@@ -1,0 +1,50 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <h1>Commitments</h1>
+  <p class="muted">Cash loans, repaid in scrap. What is repaid and what remains come from the disposal batches applied.</p>
+  <div class="toolbar"><a class="button" href="{% url 'office:commitment-new' %}">Add a commitment</a></div>
+</header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  <label>Status
+    <select name="status">
+      <option value="">Any</option>
+      {% for value, name in status_choices %}<option value="{{ value }}"{% if f.status == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Branch
+    <select name="branch">
+      <option value="">Every loan</option>
+      {% for value, name in branch_choices %}<option value="{{ value }}"{% if f.branch == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      <option value="none"{% if company_wide %} selected{% endif %}>Company-wide</option>
+    </select>
+  </label>
+  {% include "office/_filters.html" with no_branch=True placeholder="Lender or id" %}
+</form>
+
+<section id="results" class="card">
+  <table class="table">
+    <thead><tr><th>Approved</th><th>Commitment</th><th>Lender</th><th>Branch</th><th class="num">Loan</th><th class="num">Repaid</th><th class="num">Remaining</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for loan in page %}
+      <tr>
+        <td class="nowrap">{{ loan.commitment.date_approved|date:"M j, Y" }}</td>
+        <td><a class="record-id" href="{% url 'office:commitment' loan.commitment.id %}">{{ loan.commitment.id }}</a></td>
+        <td>{{ loan.commitment.lender }}</td>
+        <td>{% if loan.commitment.branch_id %}{{ loan.commitment.branch_id|label:"BranchId" }}{% else %}Company-wide{% endif %}</td>
+        <td class="num"><span class="money money--gold">{{ loan.commitment.amount_centavos|peso }}</span></td>
+        <td class="num"><span class="money money--in">{{ loan.repaid_centavos|peso }}</span></td>
+        <td class="num"><span class="money">{{ loan.remaining_centavos|peso }}</span></td>
+        <td>{% include "office/_loan_status.html" with status=loan.status %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="muted">No commitments match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% include "office/_pager.html" %}
+</section>
+{% endblock %}

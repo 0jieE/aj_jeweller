@@ -1,0 +1,51 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <h1>Cash entries</h1>
+  <div class="toolbar">
+    <a class="button" href="{% url 'office:cash-new' %}">Record an entry</a>
+    <a class="button button--quiet" href="{% url 'office:cash-transfer' %}">Move cash</a>
+  </div>
+</header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  <label>Cash source
+    <select name="account">
+      <option value="">Any</option>
+      {% for value, name in account_choices %}<option value="{{ value }}"{% if account == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Type
+    <select name="type">
+      <option value="">Any</option>
+      {% for value, name in type_choices %}<option value="{{ value }}"{% if f.type == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  {% include "office/_filters.html" with placeholder="Note, category or record id" %}
+</form>
+
+<section id="results" class="card">
+  <table class="table">
+    <thead><tr><th>Date</th><th>Entry</th><th>Branch</th><th>Cash source</th><th>Type</th><th>Note</th><th class="num">Amount</th><th>Recorded by</th></tr></thead>
+    <tbody>
+    {% for entry in page %}
+      <tr>
+        <td class="nowrap">{{ entry.date|when }}</td>
+        <td><a class="record-id" href="{% url 'office:cash-entry' entry.id %}">{{ entry.id }}</a></td>
+        <td>{{ entry.branch_id|label:"BranchId" }}</td>
+        <td>{{ entry.get_account_display }}</td>
+        <td>{{ entry.get_type_display }}{% if not entry.is_manual %} <span class="muted small">({{ entry.get_source_type_display|lower }})</span>{% endif %}</td>
+        <td>{{ entry.note }}{% if entry.category %} <span class="badge badge--silver">{{ entry.category }}</span>{% endif %}</td>
+        <td class="num"><span class="money {{ entry|flow }}">{{ entry.signed_amount_centavos|peso }}</span></td>
+        <td>{{ entry.recorded_by.name|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8" class="muted">No entries match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% include "office/_pager.html" %}
+</section>
+{% endblock %}

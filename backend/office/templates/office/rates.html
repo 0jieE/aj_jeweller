@@ -1,0 +1,73 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <h1>Rates</h1>
+  <p class="muted">The buying price per gram for each purity. Every change goes into the history below.</p>
+</header>
+
+{% if error %}<p class="refusal">{{ error }}</p>{% endif %}
+
+<div class="grid grid--2">
+  <section class="card">
+    <h2>Gold</h2>
+    {% include "office/_rate_rows.html" with rows=gold %}
+  </section>
+  <section class="card">
+    <h2>Silver</h2>
+    {% include "office/_rate_rows.html" with rows=silver %}
+  </section>
+</div>
+
+<div class="grid grid--2 no-print">
+  <section class="card">
+    <h2>Add a purity</h2>
+    <form method="post" action="{% url 'office:rate-add' %}">
+      {% csrf_token %}
+      {% with form=new %}{% include "office/_fields.html" %}{% endwith %}
+      <button class="button" type="submit">Add</button>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Put back a day's prices</h2>
+    <p class="muted">Sets every gold (or silver) rate to what it was at the close of that day.</p>
+    <form method="post" action="{% url 'office:rates-apply' %}">
+      {% csrf_token %}
+      {% with form=apply %}{% include "office/_fields.html" %}{% endwith %}
+      <button class="button" type="submit">Apply</button>
+    </form>
+  </section>
+</div>
+
+<section class="card">
+  <h2>History</h2>
+  <form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+        hx-swap="outerHTML" hx-push-url="true" hx-trigger="input, submit">
+    <label>Purity
+      <select name="karat">
+        <option value="">Every purity</option>
+        {% for value, name in purities %}<option value="{{ value }}"{% if karat == value|stringformat:"d" %} selected{% endif %}>{{ name }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+  <div id="results">
+    <table class="table">
+      <thead><tr><th>When</th><th>Purity</th><th class="num">Before</th><th class="num">After</th><th>By</th></tr></thead>
+      <tbody>
+      {% for c in page %}
+        <tr>
+          <td class="nowrap">{{ c.at|when }}</td>
+          <td>{{ c.karat|purity }}</td>
+          <td class="num"><span class="money">{{ c.before_centavos|peso }}</span></td>
+          <td class="num"><span class="money money--gold">{{ c.after_centavos|peso }}</span></td>
+          <td>{{ c.user_name }}{% if c.restored_from %} <span class="muted small">(put back {{ c.restored_from|date:"M j, Y" }})</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">No changes yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% include "office/_pager.html" %}
+  </div>
+</section>
+{% endblock %}

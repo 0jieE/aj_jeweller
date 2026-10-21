@@ -1,0 +1,21 @@
+{% extends "office/base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h1>AJ Jeweler office</h1>
+  <p class="muted">For whoever maintains the system. Sign in with your name and PIN, as in the app.</p>
+
+  {% if form.non_field_errors %}
+    <div class="refusal">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      <p><a href="/" hx-boost="false">Open the app</a></p>
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% include "office/_fields.html" %}
+    <button class="button" type="submit">Sign in</button>
+  </form>
+</section>
+{% endblock %}

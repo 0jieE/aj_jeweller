@@ -1,0 +1,9 @@
+{% if page.paginator.num_pages > 1 %}
+<nav class="pager no-print">
+  {% if page.has_previous %}<a href="{% querystring page=page.previous_page_number %}">Newer</a>{% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} in all</span>
+  {% if page.has_next %}<a href="{% querystring page=page.next_page_number %}">Older</a>{% endif %}
+</nav>
+{% else %}
+<p class="muted small">{{ page.paginator.count }} in all</p>
+{% endif %}

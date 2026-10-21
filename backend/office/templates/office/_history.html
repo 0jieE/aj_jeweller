@@ -1,0 +1,27 @@
+{% load office %}
+{# The log entries about one record, as on its detail page. #}
+<section class="card">
+  <h2>History</h2>
+  {% if log %}
+  <table class="table">
+    <thead><tr><th>When</th><th>Who</th><th>What</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+    {% for entry in log %}
+      <tr>
+        <td class="nowrap">{{ entry.at|when }}</td>
+        <td>{{ entry.user_name }} <span class="muted">({{ entry.role|label:"Role" }})</span></td>
+        <td>
+          <strong>{{ entry.get_action_display }}</strong> · {{ entry.summary }}
+          {% if entry.changes %}
+          <ul class="changes">{% for c in entry.changes %}<li>{{ c.field }}: {{ c.before }} → {{ c.after }}</li>{% endfor %}</ul>
+          {% endif %}
+        </td>
+        <td class="num"><span class="money">{{ entry.amount_centavos|peso }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">Nothing logged about this record.</p>
+  {% endif %}
+</section>

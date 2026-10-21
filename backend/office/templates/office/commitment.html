@@ -1,0 +1,48 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+{% with c=loan.commitment %}
+<header class="page-head">
+  <p class="crumbs no-print"><a href="{% url 'office:commitments' %}">Commitments</a></p>
+  <h1>{{ c.lender }} <span class="record-id muted">{{ c.id }}</span> {% include "office/_loan_status.html" with status=loan.status %}</h1>
+  {% if not c.date_received %}
+  <div class="toolbar"><a class="button" href="{% url 'office:commitment-receive' c.id %}">Record the cash received</a></div>
+  {% endif %}
+</header>
+
+<div class="grid grid--2">
+  <section class="card">
+    <dl class="facts">
+      <dt>Branch</dt><dd>{% if c.branch_id %}{{ c.branch.label }}{% else %}Company-wide{% endif %}</dd>
+      <dt>Loan</dt><dd><span class="money money--gold">{{ c.amount_centavos|peso }}</span> at <span class="money">{{ c.rate_per_gram_centavos|peso }}</span> per gram, <span class="grams">{{ figures.total_grams_owed }}g</span> owed</dd>
+      <dt>Repaid</dt><dd><span class="money money--in">{{ loan.repaid_centavos|peso }}</span>, <span class="grams">{{ figures.repaid_grams }}g</span></dd>
+      <dt>Remaining</dt><dd><span class="money">{{ loan.remaining_centavos|peso }}</span>, <span class="grams">{{ figures.remaining_grams }}g</span></dd>
+      <dt>Approved</dt><dd>{{ c.date_approved|when }}</dd>
+      <dt>Cash received</dt><dd>{{ c.date_received|when }}</dd>
+    </dl>
+  </section>
+  <section class="card">
+    {% if c.received_proof_photo %}<img class="photo photo--large" src="{{ c.received_proof_photo.url }}" alt="Proof of cash received">{% else %}<p class="muted">No proof photo yet.</p>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>Disposal batches applied</h2>
+  <table class="table">
+    <thead><tr><th>Date</th><th>Batch</th><th class="num">Gross weight</th><th class="num">Gross amount</th></tr></thead>
+    <tbody>
+    {% for batch in disposals %}
+      <tr>
+        <td>{{ batch.date|when }}</td>
+        <td><a class="record-id" href="{% url 'office:disposal' batch.id %}">{{ batch.id }}</a></td>
+        <td class="num"><span class="grams">{{ batch.gross_grams|grams }}</span></td>
+        <td class="num"><span class="money money--in">{{ batch.gross_amount_centavos|peso }}</span></td>
+      </tr>
+    {% empty %}<tr><td colspan="4" class="muted">None yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endwith %}
+
+{% include "office/_history.html" %}
+{% endblock %}

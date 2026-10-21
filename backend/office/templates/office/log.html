@@ -1,0 +1,61 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <h1>Transaction log</h1>
+  <p class="muted">Every change to the shop, newest first: who did it, when, and to which record. Nothing here can be edited or deleted.</p>
+</header>
+
+<form class="filters toolbar" method="get" hx-get="{{ request.path }}" hx-target="#results" hx-select="#results"
+      hx-swap="outerHTML" hx-push-url="true" hx-trigger="input delay:400ms, submit">
+  <label>Person
+    <select name="person">
+      <option value="">Anyone</option>
+      {% for p in people %}<option value="{{ p.id }}"{% if person == p.id %} selected{% endif %}>{{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Area
+    <select name="type">
+      <option value="">Any</option>
+      {% for value, name in category_choices %}<option value="{{ value }}"{% if f.type == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Action
+    <select name="action">
+      <option value="">Any</option>
+      {% for value, name in action_choices %}<option value="{{ value }}"{% if action == value %} selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Record <input type="search" name="record" value="{{ record }}" placeholder="Record id" size="10"></label>
+  {% include "office/_filters.html" with placeholder="Words in the summary" %}
+</form>
+
+<section id="results" class="card">
+  <table class="table">
+    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Summary</th><th>Branch</th><th>Record</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+    {% for entry in page %}
+      <tr>
+        <td class="nowrap">{{ entry.at|when }}{% if entry.received_at > entry.at %}<br><span class="muted small" title="Made offline; reached the server {{ entry.received_at|when }}">offline</span>{% endif %}</td>
+        <td>{{ entry.user_name }}<br><span class="muted small">{{ entry.role|label:"Role" }}</span></td>
+        <td>{{ entry.get_action_display }}</td>
+        <td>
+          {{ entry.summary }}
+          {% if entry.changes %}
+          <details><summary class="small">{{ entry.changes|length }} change{{ entry.changes|length|pluralize }}</summary>
+            <ul class="changes">{% for c in entry.changes %}<li>{{ c.field }}: {{ c.before }} → {{ c.after }}</li>{% endfor %}</ul>
+          </details>
+          {% endif %}
+        </td>
+        <td>{{ entry.branch_id|label:"BranchId" }}</td>
+        <td>{% record_url entry.record_kind entry.record_id as link %}{% if link %}<a class="record-id" href="{{ link }}">{{ entry.record_id }}</a>{% else %}<span class="record-id">{{ entry.record_id|default:"" }}</span>{% endif %}</td>
+        <td class="num"><span class="money">{{ entry.amount_centavos|peso }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="muted">Nothing logged matches.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% include "office/_pager.html" %}
+</section>
+{% endblock %}

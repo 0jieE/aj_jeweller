@@ -1,0 +1,46 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <p class="crumbs no-print"><a href="{% url 'office:disposals' %}">Disposal batches</a></p>
+  <h1>Disposal <span class="record-id">{{ batch.id }}</span></h1>
+</header>
+
+<div class="grid grid--2">
+  <section class="card">
+    <dl class="facts">
+      <dt>Branch</dt><dd>{{ batch.branch.label }}</dd>
+      <dt>Date</dt><dd>{{ batch.date|when }}</dd>
+      <dt>Settles</dt><dd><a href="{% url 'office:commitment' batch.commitment_id %}">{{ batch.commitment.lender }}</a> <span class="record-id muted">{{ batch.commitment_id }}</span></dd>
+      <dt>Gross weight</dt><dd><span class="grams">{{ batch.gross_grams|grams }}</span></dd>
+      <dt>Capital</dt><dd><span class="money money--gold">{{ batch.capital_centavos|peso }}</span></dd>
+      <dt>Gross amount</dt><dd><span class="money money--in">{{ batch.gross_amount_centavos|peso }}</span></dd>
+      <dt>Net</dt><dd><span class="money">{{ batch.net_centavos|peso }}</span></dd>
+      <dt>By purity</dt><dd>{% for karat, weight in breakdown %}{{ karat|purity }} <span class="grams">{{ weight|grams }}</span>{% if not forloop.last %} · {% endif %}{% endfor %}</dd>
+    </dl>
+  </section>
+  <section class="card">
+    {% if batch.photo %}<img class="photo photo--large" src="{{ batch.photo.url }}" alt="Disposal batch">{% else %}<p class="muted">No photo.</p>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>Pieces</h2>
+  <table class="table">
+    <thead><tr><th>Item</th><th>Description</th><th>Purity</th><th class="num">Weight</th><th class="num">Capital</th></tr></thead>
+    <tbody>
+    {% for item in pieces %}
+      <tr>
+        <td><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a></td>
+        <td>{{ item.description }}</td>
+        <td>{{ item.karat|purity }}</td>
+        <td class="num"><span class="grams">{{ item.effective_remaining_grams|grams }}</span></td>
+        <td class="num"><span class="money money--gold">{{ item.effective_remaining_amount|peso }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% include "office/_history.html" %}
+{% endblock %}

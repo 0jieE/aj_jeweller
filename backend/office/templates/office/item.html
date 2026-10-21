@@ -1,0 +1,72 @@
+{% extends "office/base.html" %}
+{% load office %}
+{% block content %}
+<header class="page-head">
+  <p class="crumbs no-print"><a href="{% url 'office:items' %}">Items</a></p>
+  <h1>{{ item.description }} <span class="record-id muted">{{ item.id }}</span></h1>
+  <div class="toolbar">
+    {% if can_correct %}<a class="button" href="{% url 'office:item-correct' item.id %}">Correct</a>
+    {% else %}<span class="muted small">A {{ item.get_item_status_display|lower }} piece is corrected on its sale or batch.</span>{% endif %}
+  </div>
+</header>
+
+<div class="grid grid--2">
+  <section class="card">
+    <dl class="facts">
+      <dt>Type</dt><dd>{% include "office/_type.html" with type=item.type %} {{ item.karat|purity }}</dd>
+      <dt>Status</dt><dd>{{ item.get_item_status_display }} · {{ item.get_verification_status_display }}</dd>
+      <dt>Branch</dt><dd>{{ item.branch_id|label:"BranchId" }}</dd>
+      <dt>Gross weight</dt><dd><span class="grams">{{ item.effective_gross_grams|grams }}</span></dd>
+      <dt>Net weight</dt><dd><span class="grams">{{ item.weight_grams|grams }}</span></dd>
+      <dt>Amount</dt><dd><span class="money money--gold">{{ item.capital_amount_centavos|peso }}</span></dd>
+      {% if item.has_partitions %}
+      <dt>Bought as</dt><dd><span class="grams">{{ item.effective_original_grams|grams }}</span> for <span class="money money--gold">{{ item.effective_original_amount|peso }}</span></dd>
+      <dt>Remaining</dt><dd><span class="grams">{{ item.effective_remaining_grams|grams }}</span>, <span class="money money--gold">{{ item.effective_remaining_amount|peso }}</span></dd>
+      {% endif %}
+      <dt>Origin</dt><dd>{{ item.origin }}</dd>
+      <dt>Bought</dt><dd>{{ item.purchase_date|when }}</dd>
+      <dt>Encoded by</dt><dd>{{ item.encoded_by.name|default:"—" }} <span class="muted">({{ item.submitted_by_role|label:"Role" }})</span></dd>
+      {% if item.batch_id %}<dt>Purchase</dt><dd><a class="record-id" href="{% url 'office:purchase' item.batch_id %}">{{ item.batch_id }}</a></dd>{% endif %}
+      {% if item.parent_lot_id %}<dt>Drawn from</dt><dd><a class="record-id" href="{% url 'office:item' item.parent_lot_id %}">{{ item.parent_lot_id }}</a></dd>{% endif %}
+      {% if item.verification_note %}<dt>Note</dt><dd>{{ item.verification_note }}</dd>{% endif %}
+    </dl>
+  </section>
+  <section class="card">
+    {% if item.photo %}
+      <a href="{{ item.photo.url }}" hx-boost="false" target="_blank"><img class="photo photo--large" src="{{ item.photo.url }}" alt="{{ item.description }}"></a>
+    {% else %}<p class="muted">No photo.</p>{% endif %}
+  </section>
+</div>
+
+{% if partitions %}
+<section class="card">
+  <h2>Pieces drawn from this lot</h2>
+  <table class="table">
+    <thead><tr><th>Item</th><th>Description</th><th class="num">Net</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for piece in partitions %}
+      <tr>
+        <td><a class="record-id" href="{% url 'office:item' piece.id %}">{{ piece.id }}</a></td>
+        <td>{{ piece.description }}</td>
+        <td class="num"><span class="grams">{{ piece.weight_grams|grams }}</span></td>
+        <td class="num"><span class="money money--gold">{{ piece.capital_amount_centavos|peso }}</span></td>
+        <td>{{ piece.get_item_status_display }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if sale_lines or disposals %}
+<section class="card">
+  <h2>Where it went</h2>
+  <ul>
+    {% for line in sale_lines %}<li>Sale <a class="record-id" href="{% url 'office:sale' line.sale_id %}">{{ line.sale_id }}</a> for <span class="money money--gold">{{ line.negotiated_price_centavos|peso }}</span></li>{% endfor %}
+    {% for batch in disposals %}<li>Disposal <a class="record-id" href="{% url 'office:disposal' batch.id %}">{{ batch.id }}</a>, {{ batch.date|when }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% include "office/_history.html" %}
+{% endblock %}

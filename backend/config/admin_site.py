@@ -40,9 +40,16 @@ class LoginForm(AdminAuthenticationForm):
             raise forms.ValidationError(refused.message, code=refused.code) from None
         user.backend = "accounts.backends.PinBackend"
         self.user_cache = user
-        if not user.is_staff:
-            raise forms.ValidationError("Only a Superuser can use the administration site", code="not_superuser")
+        if not self.allowed(user):
+            raise forms.ValidationError(self.refused_message, code="not_superuser")
         return self.cleaned_data
+
+    # Who this sign-in admits, and what it tells everyone else. The office at
+    # /administrator/ (office.views) subclasses this form and changes only these.
+    refused_message = "Only a Superuser can use the administration site"
+
+    def allowed(self, user) -> bool:
+        return user.is_staff
 
 
 class PinChangeForm(forms.Form):

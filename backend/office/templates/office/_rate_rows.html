@@ -1,0 +1,22 @@
+{% load office %}
+{% if rows %}
+<table class="table">
+  <thead><tr><th>Purity</th><th class="num">Per gram</th><th>Updated</th><th class="no-print">New price</th></tr></thead>
+  <tbody>
+  {% for rate in rows %}
+    <tr>
+      <td>{{ rate.karat|purity }}</td>
+      <td class="num"><span class="money money--gold">{{ rate.price_per_gram_centavos|peso }}</span></td>
+      <td class="nowrap">{{ rate.updated_at|when }}</td>
+      <td class="no-print">
+        <form class="inline" method="post" action="{% url 'office:rate-update' rate.karat %}">
+          {% csrf_token %}
+          {{ rate.form.price }}
+          <button class="button button--quiet" type="submit">Save</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p class="muted">None yet.</p>{% endif %}

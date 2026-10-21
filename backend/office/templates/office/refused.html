@@ -1,0 +1,13 @@
+{% extends "office/base.html" %}
+{% block content %}
+<section class="card narrow">
+  <h1>This is the back office</h1>
+  <p>{{ refused_message }}</p>
+  <p><a class="button" href="/" hx-boost="false">Open the app</a></p>
+  <form method="post" action="{% url 'office:logout' %}">
+    {% csrf_token %}
+    <p class="muted">Signed in as {{ user.name }} ({{ user.role_label }}).
+      <button class="link-button" type="submit">Sign out</button></p>
+  </form>
+</section>
+{% endblock %}
