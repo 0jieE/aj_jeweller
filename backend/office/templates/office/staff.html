@@ -7,18 +7,18 @@
 </header>
 
 <section class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Name</th><th>Role</th><th>Branch</th><th>Contact</th><th>PIN</th><th>Status</th><th>User id</th></tr></thead>
     <tbody>
     {% for p in people %}
       <tr{% if not p.active %} class="quiet"{% endif %}>
-        <td><a href="{% url 'office:staff-member' p.id %}">{{ p.name }}</a></td>
-        <td>{{ p.role_label }}</td>
-        <td>{% if p.home_branch %}{{ p.home_branch|label:"BranchId" }}{% else %}Both{% endif %}</td>
-        <td>{{ p.contact_number|default:"—" }}</td>
-        <td>{% if p.has_pin %}Set{% else %}<span class="badge badge--sell">Not set</span>{% endif %}</td>
-        <td>{% if not p.active %}Deactivated{% elif p.locked_until and p.locked_until > now %}<span class="badge badge--sell">Locked out</span>{% else %}Active{% endif %}</td>
-        <td class="record-id">{{ p.id }}</td>
+        <td data-label="Name"><a href="{% url 'office:staff-member' p.id %}">{{ p.name }}</a></td>
+        <td data-label="Role">{{ p.role_label }}</td>
+        <td data-label="Branch">{% if p.home_branch %}{{ p.home_branch|label:"BranchId" }}{% else %}Both{% endif %}</td>
+        <td data-label="Contact">{{ p.contact_number|default:"—" }}</td>
+        <td data-label="PIN">{% if p.has_pin %}Set{% else %}<span class="badge badge--sell">Not set</span>{% endif %}</td>
+        <td data-label="Status">{% if not p.active %}Deactivated{% elif p.locked_until and p.locked_until > now %}<span class="badge badge--sell">Locked out</span>{% else %}Active{% endif %}</td>
+        <td data-label="User id" class="record-id">{{ p.id }}</td>
       </tr>
     {% endfor %}
     </tbody>

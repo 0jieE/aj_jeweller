@@ -1,4 +1,4 @@
-{% load static %}<!doctype html>
+{% load static office %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -11,37 +11,61 @@
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   {% if user.is_authenticated and user.role == "superuser" %}
-  <nav class="topbar">
+  {# On narrow screens the sidebar is a drawer; this checkbox opens it, with no script. #}
+  <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
+
+  <header class="mobilebar">
+    <label for="nav-toggle" class="menu-button" aria-label="Open the menu">
+      <span></span><span></span><span></span>
+    </label>
     <a class="brand" href="{% url 'office:today' %}">AJ Jeweler <span>office</span></a>
-    <div class="links">
-      <a href="{% url 'office:today' %}">Today</a>
-      <a href="{% url 'office:purchases' %}">Purchases</a>
-      <a href="{% url 'office:sales' %}">Sales</a>
-      <a href="{% url 'office:items' %}">Items</a>
-      <a href="{% url 'office:cash-entries' %}">Cash</a>
-      <a href="{% url 'office:customers' %}">Customers</a>
-      <a href="{% url 'office:commitments' %}">Loans</a>
-      <a href="{% url 'office:disposals' %}">Disposal</a>
-      <a href="{% url 'office:reports' %}">Reports</a>
-      <a href="{% url 'office:log' %}">Log</a>
-      <a href="{% url 'office:staff' %}">Staff</a>
-      <a href="{% url 'office:rates' %}">Rates</a>
-    </div>
-    <form class="who" method="post" action="{% url 'office:logout' %}">
-      {% csrf_token %}
-      <span>{{ user.name }}</span>
-      <button class="link-button" type="submit">Sign out</button>
-    </form>
-  </nav>
+  </header>
+  <label for="nav-toggle" class="scrim" aria-label="Close the menu"></label>
+
+  <div class="shell">
+    <nav class="sidebar" aria-label="Office">
+      <a class="brand" href="{% url 'office:today' %}">AJ Jeweler <span>office</span></a>
+
+      <div class="nav-group">
+        {% nav_link "office:today" "Today" %}
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">Records</p>
+        {% nav_link "office:purchases" "Purchases" %}
+        {% nav_link "office:sales" "Sales" %}
+        {% nav_link "office:items" "Items" %}
+        {% nav_link "office:cash-entries" "Cash" %}
+        {% nav_link "office:customers" "Customers" %}
+        {% nav_link "office:commitments" "Loans" %}
+        {% nav_link "office:disposals" "Disposal" %}
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">Reports</p>
+        {% nav_link "office:reports" "Reports" %}
+        {% nav_link "office:log" "Transaction log" %}
+      </div>
+      <div class="nav-group">
+        <p class="nav-title">Shop</p>
+        {% nav_link "office:staff" "Staff" %}
+        {% nav_link "office:rates" "Rates" %}
+      </div>
+
+      <form class="who" method="post" action="{% url 'office:logout' %}">
+        {% csrf_token %}
+        <span class="who-name">{{ user.name }}</span>
+        <span class="who-role">{{ user.role_label }}</span>
+        <button class="link-button" type="submit">Sign out</button>
+      </form>
+    </nav>
   {% endif %}
 
-  <main class="page">
-    {% if messages %}
-      <div class="messages no-print">
-        {% for message in messages %}<p class="message message--{{ message.tags }}">{{ message }}</p>{% endfor %}
-      </div>
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
+    <main class="page">
+      {% include "office/_messages.html" %}
+      {% block content %}{% endblock %}
+    </main>
+
+  {% if user.is_authenticated and user.role == "superuser" %}
+  </div>
+  {% endif %}
 </body>
 </html>

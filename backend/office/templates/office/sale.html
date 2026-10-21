@@ -25,17 +25,17 @@
 
 <section class="card">
   <h2>Pieces</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Item</th><th>Description</th><th>Purity</th><th class="num">Weight</th><th class="num">Per gram</th><th class="num">Price</th></tr></thead>
     <tbody>
     {% for line in lines %}
       <tr>
-        <td><a class="record-id" href="{% url 'office:item' line.item_id %}">{{ line.item_id }}</a></td>
-        <td>{{ line.item_snapshot.description|default:line.item.description }}</td>
-        <td>{{ line.item.karat|purity }}</td>
-        <td class="num"><span class="grams">{{ line.effective_final_grams|grams }}</span></td>
-        <td class="num"><span class="money">{{ line.price_per_gram_centavos|peso }}</span></td>
-        <td class="num"><span class="money money--gold">{{ line.negotiated_price_centavos|peso }}</span></td>
+        <td data-label="Item"><a class="record-id" href="{% url 'office:item' line.item_id %}">{{ line.item_id }}</a></td>
+        <td data-label="Description">{{ line.item_snapshot.description|default:line.item.description }}</td>
+        <td data-label="Purity">{{ line.item.karat|purity }}</td>
+        <td data-label="Weight" class="num"><span class="grams">{{ line.effective_final_grams|grams }}</span></td>
+        <td data-label="Per gram" class="num"><span class="money">{{ line.price_per_gram_centavos|peso }}</span></td>
+        <td data-label="Price" class="num"><span class="money money--gold">{{ line.negotiated_price_centavos|peso }}</span></td>
       </tr>
     {% endfor %}
     </tbody>

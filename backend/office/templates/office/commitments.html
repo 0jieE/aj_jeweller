@@ -26,19 +26,19 @@
 </form>
 
 <section id="results" class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Approved</th><th>Commitment</th><th>Lender</th><th>Branch</th><th class="num">Loan</th><th class="num">Repaid</th><th class="num">Remaining</th><th>Status</th></tr></thead>
     <tbody>
     {% for loan in page %}
       <tr>
-        <td class="nowrap">{{ loan.commitment.date_approved|date:"M j, Y" }}</td>
-        <td><a class="record-id" href="{% url 'office:commitment' loan.commitment.id %}">{{ loan.commitment.id }}</a></td>
-        <td>{{ loan.commitment.lender }}</td>
-        <td>{% if loan.commitment.branch_id %}{{ loan.commitment.branch_id|label:"BranchId" }}{% else %}Company-wide{% endif %}</td>
-        <td class="num"><span class="money money--gold">{{ loan.commitment.amount_centavos|peso }}</span></td>
-        <td class="num"><span class="money money--in">{{ loan.repaid_centavos|peso }}</span></td>
-        <td class="num"><span class="money">{{ loan.remaining_centavos|peso }}</span></td>
-        <td>{% include "office/_loan_status.html" with status=loan.status %}</td>
+        <td data-label="Approved" class="nowrap">{{ loan.commitment.date_approved|date:"M j, Y" }}</td>
+        <td data-label="Commitment"><a class="record-id" href="{% url 'office:commitment' loan.commitment.id %}">{{ loan.commitment.id }}</a></td>
+        <td data-label="Lender">{{ loan.commitment.lender }}</td>
+        <td data-label="Branch">{% if loan.commitment.branch_id %}{{ loan.commitment.branch_id|label:"BranchId" }}{% else %}Company-wide{% endif %}</td>
+        <td data-label="Loan" class="num"><span class="money money--gold">{{ loan.commitment.amount_centavos|peso }}</span></td>
+        <td data-label="Repaid" class="num"><span class="money money--in">{{ loan.repaid_centavos|peso }}</span></td>
+        <td data-label="Remaining" class="num"><span class="money">{{ loan.remaining_centavos|peso }}</span></td>
+        <td data-label="Status">{% include "office/_loan_status.html" with status=loan.status %}</td>
       </tr>
     {% empty %}
       <tr><td colspan="8" class="muted">No commitments match.</td></tr>

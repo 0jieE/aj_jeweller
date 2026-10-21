@@ -51,16 +51,16 @@
     </label>
   </form>
   <div id="results">
-    <table class="table">
+    <table class="table table--cards">
       <thead><tr><th>When</th><th>Purity</th><th class="num">Before</th><th class="num">After</th><th>By</th></tr></thead>
       <tbody>
       {% for c in page %}
         <tr>
-          <td class="nowrap">{{ c.at|when }}</td>
-          <td>{{ c.karat|purity }}</td>
-          <td class="num"><span class="money">{{ c.before_centavos|peso }}</span></td>
-          <td class="num"><span class="money money--gold">{{ c.after_centavos|peso }}</span></td>
-          <td>{{ c.user_name }}{% if c.restored_from %} <span class="muted small">(put back {{ c.restored_from|date:"M j, Y" }})</span>{% endif %}</td>
+          <td data-label="When" class="nowrap">{{ c.at|when }}</td>
+          <td data-label="Purity">{{ c.karat|purity }}</td>
+          <td data-label="Before" class="num"><span class="money">{{ c.before_centavos|peso }}</span></td>
+          <td data-label="After" class="num"><span class="money money--gold">{{ c.after_centavos|peso }}</span></td>
+          <td data-label="By">{{ c.user_name }}{% if c.restored_from %} <span class="muted small">(put back {{ c.restored_from|date:"M j, Y" }})</span>{% endif %}</td>
         </tr>
       {% empty %}
         <tr><td colspan="5" class="muted">No changes yet.</td></tr>

@@ -22,16 +22,16 @@
 
 <section class="card">
   <h2>Sold to the shop</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Date</th><th>Purchase</th><th>Branch</th><th class="num">Amount</th><th>Status</th></tr></thead>
     <tbody>
     {% for batch in purchases %}
       <tr>
-        <td>{{ batch.date|when }}</td>
-        <td><a class="record-id" href="{% url 'office:purchase' batch.id %}">{{ batch.id }}</a></td>
-        <td>{{ batch.branch_id|label:"BranchId" }}</td>
-        <td class="num"><span class="money money--gold">{{ batch.total|peso }}</span></td>
-        <td>{% include "office/_status.html" with status=batch.verification_status %}</td>
+        <td data-label="Date">{{ batch.date|when }}</td>
+        <td data-label="Purchase"><a class="record-id" href="{% url 'office:purchase' batch.id %}">{{ batch.id }}</a></td>
+        <td data-label="Branch">{{ batch.branch_id|label:"BranchId" }}</td>
+        <td data-label="Amount" class="num"><span class="money money--gold">{{ batch.total|peso }}</span></td>
+        <td data-label="Status">{% include "office/_status.html" with status=batch.verification_status %}</td>
       </tr>
     {% empty %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
     </tbody>
@@ -40,16 +40,16 @@
 
 <section class="card">
   <h2>Bought from the shop</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Date</th><th>Sale</th><th>Branch</th><th class="num">Total</th><th>Status</th></tr></thead>
     <tbody>
     {% for sale in sales %}
       <tr>
-        <td>{{ sale.date|when }}</td>
-        <td><a class="record-id" href="{% url 'office:sale' sale.id %}">{{ sale.id }}</a></td>
-        <td>{{ sale.branch_id|label:"BranchId" }}</td>
-        <td class="num"><span class="money money--gold">{{ sale.total_centavos|peso }}</span></td>
-        <td>{% include "office/_status.html" with status=sale.verification_status %}</td>
+        <td data-label="Date">{{ sale.date|when }}</td>
+        <td data-label="Sale"><a class="record-id" href="{% url 'office:sale' sale.id %}">{{ sale.id }}</a></td>
+        <td data-label="Branch">{{ sale.branch_id|label:"BranchId" }}</td>
+        <td data-label="Total" class="num"><span class="money money--gold">{{ sale.total_centavos|peso }}</span></td>
+        <td data-label="Status">{% include "office/_status.html" with status=sale.verification_status %}</td>
       </tr>
     {% empty %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
     </tbody>

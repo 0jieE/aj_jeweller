@@ -21,20 +21,20 @@
 </form>
 
 <section id="results" class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Bought</th><th>Item</th><th>Description</th><th>Type</th><th>Purity</th><th class="num">Net</th><th class="num">Amount</th><th>Status</th><th>Branch</th></tr></thead>
     <tbody>
     {% for item in page %}
       <tr>
-        <td class="nowrap">{{ item.purchase_date|date:"M j, Y" }}</td>
-        <td><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a>{% if item.is_partition %} <span class="muted small">partition</span>{% endif %}</td>
-        <td>{{ item.description }}</td>
-        <td>{% include "office/_type.html" with type=item.type %}</td>
-        <td>{{ item.karat|purity }}</td>
-        <td class="num"><span class="grams">{{ item.effective_remaining_grams|grams }}</span></td>
-        <td class="num"><span class="money money--gold">{{ item.effective_remaining_amount|peso }}</span></td>
-        <td>{{ item.get_item_status_display }}</td>
-        <td>{{ item.branch_id|label:"BranchId" }}</td>
+        <td data-label="Bought" class="nowrap">{{ item.purchase_date|date:"M j, Y" }}</td>
+        <td data-label="Item"><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a>{% if item.is_partition %} <span class="muted small">partition</span>{% endif %}</td>
+        <td data-label="Description">{{ item.description }}</td>
+        <td data-label="Type">{% include "office/_type.html" with type=item.type %}</td>
+        <td data-label="Purity">{{ item.karat|purity }}</td>
+        <td data-label="Net" class="num"><span class="grams">{{ item.effective_remaining_grams|grams }}</span></td>
+        <td data-label="Amount" class="num"><span class="money money--gold">{{ item.effective_remaining_amount|peso }}</span></td>
+        <td data-label="Status">{{ item.get_item_status_display }}</td>
+        <td data-label="Branch">{{ item.branch_id|label:"BranchId" }}</td>
       </tr>
     {% empty %}
       <tr><td colspan="9" class="muted">No items match.</td></tr>

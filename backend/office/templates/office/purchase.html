@@ -26,19 +26,19 @@
 
 <section class="card">
   <h2>Pieces</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Item</th><th>Description</th><th>Type</th><th>Purity</th><th class="num">Gross</th><th class="num">Net</th><th class="num">Amount</th><th>Status</th></tr></thead>
     <tbody>
     {% for item in lines %}
       <tr>
-        <td><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a></td>
-        <td>{{ item.description }}</td>
-        <td>{% include "office/_type.html" with type=item.type %}</td>
-        <td>{{ item.karat|purity }}</td>
-        <td class="num"><span class="grams">{{ item.effective_gross_grams|grams }}</span></td>
-        <td class="num"><span class="grams">{{ item.effective_original_grams|grams }}</span></td>
-        <td class="num"><span class="money money--gold">{{ item.effective_original_amount|peso }}</span></td>
-        <td>{{ item.get_item_status_display }}</td>
+        <td data-label="Item"><a class="record-id" href="{% url 'office:item' item.id %}">{{ item.id }}</a></td>
+        <td data-label="Description">{{ item.description }}</td>
+        <td data-label="Type">{% include "office/_type.html" with type=item.type %}</td>
+        <td data-label="Purity">{{ item.karat|purity }}</td>
+        <td data-label="Gross" class="num"><span class="grams">{{ item.effective_gross_grams|grams }}</span></td>
+        <td data-label="Net" class="num"><span class="grams">{{ item.effective_original_grams|grams }}</span></td>
+        <td data-label="Amount" class="num"><span class="money money--gold">{{ item.effective_original_amount|peso }}</span></td>
+        <td data-label="Status">{{ item.get_item_status_display }}</td>
       </tr>
     {% endfor %}
     </tbody>

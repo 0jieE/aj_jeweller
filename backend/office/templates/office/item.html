@@ -41,16 +41,16 @@
 {% if partitions %}
 <section class="card">
   <h2>Pieces drawn from this lot</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Item</th><th>Description</th><th class="num">Net</th><th class="num">Amount</th><th>Status</th></tr></thead>
     <tbody>
     {% for piece in partitions %}
       <tr>
-        <td><a class="record-id" href="{% url 'office:item' piece.id %}">{{ piece.id }}</a></td>
-        <td>{{ piece.description }}</td>
-        <td class="num"><span class="grams">{{ piece.weight_grams|grams }}</span></td>
-        <td class="num"><span class="money money--gold">{{ piece.capital_amount_centavos|peso }}</span></td>
-        <td>{{ piece.get_item_status_display }}</td>
+        <td data-label="Item"><a class="record-id" href="{% url 'office:item' piece.id %}">{{ piece.id }}</a></td>
+        <td data-label="Description">{{ piece.description }}</td>
+        <td data-label="Net" class="num"><span class="grams">{{ piece.weight_grams|grams }}</span></td>
+        <td data-label="Amount" class="num"><span class="money money--gold">{{ piece.capital_amount_centavos|peso }}</span></td>
+        <td data-label="Status">{{ piece.get_item_status_display }}</td>
       </tr>
     {% endfor %}
     </tbody>

@@ -28,15 +28,15 @@
 
 <section class="card">
   <h2>Disposal batches applied</h2>
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Date</th><th>Batch</th><th class="num">Gross weight</th><th class="num">Gross amount</th></tr></thead>
     <tbody>
     {% for batch in disposals %}
       <tr>
-        <td>{{ batch.date|when }}</td>
-        <td><a class="record-id" href="{% url 'office:disposal' batch.id %}">{{ batch.id }}</a></td>
-        <td class="num"><span class="grams">{{ batch.gross_grams|grams }}</span></td>
-        <td class="num"><span class="money money--in">{{ batch.gross_amount_centavos|peso }}</span></td>
+        <td data-label="Date">{{ batch.date|when }}</td>
+        <td data-label="Batch"><a class="record-id" href="{% url 'office:disposal' batch.id %}">{{ batch.id }}</a></td>
+        <td data-label="Gross weight" class="num"><span class="grams">{{ batch.gross_grams|grams }}</span></td>
+        <td data-label="Gross amount" class="num"><span class="money money--in">{{ batch.gross_amount_centavos|peso }}</span></td>
       </tr>
     {% empty %}<tr><td colspan="4" class="muted">None yet.</td></tr>{% endfor %}
     </tbody>

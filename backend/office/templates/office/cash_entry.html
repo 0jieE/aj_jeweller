@@ -14,17 +14,17 @@
 </header>
 
 <section class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Entry</th><th>Date</th><th>Branch</th><th>Cash source</th><th>Type</th><th class="num">Amount</th></tr></thead>
     <tbody>
     {% for e in group %}
       <tr>
-        <td class="record-id">{{ e.id }}</td>
-        <td>{{ e.date|when }}</td>
-        <td>{{ e.branch_id|label:"BranchId" }}</td>
-        <td>{{ e.get_account_display }}</td>
-        <td>{{ e.get_type_display }}</td>
-        <td class="num"><span class="money {{ e|flow }}">{{ e.signed_amount_centavos|peso }}</span></td>
+        <td data-label="Entry" class="record-id">{{ e.id }}</td>
+        <td data-label="Date">{{ e.date|when }}</td>
+        <td data-label="Branch">{{ e.branch_id|label:"BranchId" }}</td>
+        <td data-label="Cash source">{{ e.get_account_display }}</td>
+        <td data-label="Type">{{ e.get_type_display }}</td>
+        <td data-label="Amount" class="num"><span class="money {{ e|flow }}">{{ e.signed_amount_centavos|peso }}</span></td>
       </tr>
     {% endfor %}
     </tbody>

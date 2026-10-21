@@ -1,14 +1,14 @@
 {% load office %}
 {% if rows %}
-<table class="table">
+<table class="table table--cards">
   <thead><tr><th>Purity</th><th class="num">Per gram</th><th>Updated</th><th class="no-print">New price</th></tr></thead>
   <tbody>
   {% for rate in rows %}
     <tr>
-      <td>{{ rate.karat|purity }}</td>
-      <td class="num"><span class="money money--gold">{{ rate.price_per_gram_centavos|peso }}</span></td>
-      <td class="nowrap">{{ rate.updated_at|when }}</td>
-      <td class="no-print">
+      <td data-label="Purity">{{ rate.karat|purity }}</td>
+      <td data-label="Per gram" class="num"><span class="money money--gold">{{ rate.price_per_gram_centavos|peso }}</span></td>
+      <td data-label="Updated" class="nowrap">{{ rate.updated_at|when }}</td>
+      <td data-label="New price" class="no-print">
         <form class="inline" method="post" action="{% url 'office:rate-update' rate.karat %}">
           {% csrf_token %}
           {{ rate.form.price }}

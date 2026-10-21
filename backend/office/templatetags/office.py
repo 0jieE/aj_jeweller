@@ -2,6 +2,8 @@
 
 from django import template
 from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 from shop import enums, text
 
@@ -37,6 +39,17 @@ def label(value, enum_name):
         return getattr(enums, enum_name)(value).label
     except ValueError:
         return value
+
+
+@register.simple_tag(takes_context=True)
+def nav_link(context, name, text):
+    """A sidebar link, marked current on its page and the pages under it."""
+    url = reverse(name)
+    path = context["request"].path
+    home = reverse("office:today")
+    current = path == url if url == home else path.startswith(url)
+    return format_html('<a href="{}"{}>{}</a>', url,
+                       mark_safe(' class="is-current" aria-current="page"') if current else "", text)
 
 
 @register.filter

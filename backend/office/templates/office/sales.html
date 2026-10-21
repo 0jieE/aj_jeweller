@@ -15,21 +15,21 @@
 </form>
 
 <section id="results" class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>Date</th><th>Sale</th><th>Branch</th><th>Customer</th><th class="num">Pieces</th><th class="num">Total</th><th class="num">Cash</th><th class="num">Bank</th><th>Status</th><th>Sales rep</th></tr></thead>
     <tbody>
     {% for sale in page %}
       <tr>
-        <td class="nowrap">{{ sale.date|when }}</td>
-        <td><a class="record-id" href="{% url 'office:sale' sale.id %}">{{ sale.id }}</a></td>
-        <td>{{ sale.branch_id|label:"BranchId" }}</td>
-        <td>{{ sale.customer_name }}</td>
-        <td class="num">{{ sale.lines.all|length }}</td>
-        <td class="num"><span class="money money--gold">{{ sale.total_centavos|peso }}</span></td>
-        <td class="num"><span class="money">{{ sale.cash_centavos|peso }}</span></td>
-        <td class="num"><span class="money">{{ sale.bank_centavos|peso }}</span></td>
-        <td>{% include "office/_status.html" with status=sale.verification_status %}</td>
-        <td>{{ sale.submitted_by.name|default:"—" }}</td>
+        <td data-label="Date" class="nowrap">{{ sale.date|when }}</td>
+        <td data-label="Sale"><a class="record-id" href="{% url 'office:sale' sale.id %}">{{ sale.id }}</a></td>
+        <td data-label="Branch">{{ sale.branch_id|label:"BranchId" }}</td>
+        <td data-label="Customer">{{ sale.customer_name }}</td>
+        <td data-label="Pieces" class="num">{{ sale.lines.all|length }}</td>
+        <td data-label="Total" class="num"><span class="money money--gold">{{ sale.total_centavos|peso }}</span></td>
+        <td data-label="Cash" class="num"><span class="money">{{ sale.cash_centavos|peso }}</span></td>
+        <td data-label="Bank" class="num"><span class="money">{{ sale.bank_centavos|peso }}</span></td>
+        <td data-label="Status">{% include "office/_status.html" with status=sale.verification_status %}</td>
+        <td data-label="Sales rep">{{ sale.submitted_by.name|default:"—" }}</td>
       </tr>
     {% empty %}
       <tr><td colspan="10" class="muted">No sales match.</td></tr>

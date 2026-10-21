@@ -31,15 +31,15 @@
 </form>
 
 <section id="results" class="card">
-  <table class="table">
+  <table class="table table--cards">
     <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Summary</th><th>Branch</th><th>Record</th><th class="num">Amount</th></tr></thead>
     <tbody>
     {% for entry in page %}
       <tr>
-        <td class="nowrap">{{ entry.at|when }}{% if entry.received_at > entry.at %}<br><span class="muted small" title="Made offline; reached the server {{ entry.received_at|when }}">offline</span>{% endif %}</td>
-        <td>{{ entry.user_name }}<br><span class="muted small">{{ entry.role|label:"Role" }}</span></td>
-        <td>{{ entry.get_action_display }}</td>
-        <td>
+        <td data-label="When" class="nowrap">{{ entry.at|when }}{% if entry.received_at > entry.at %}<br><span class="muted small" title="Made offline; reached the server {{ entry.received_at|when }}">offline</span>{% endif %}</td>
+        <td data-label="Who">{{ entry.user_name }}<br><span class="muted small">{{ entry.role|label:"Role" }}</span></td>
+        <td data-label="Action">{{ entry.get_action_display }}</td>
+        <td data-label="Summary">
           {{ entry.summary }}
           {% if entry.changes %}
           <details><summary class="small">{{ entry.changes|length }} change{{ entry.changes|length|pluralize }}</summary>
@@ -47,9 +47,9 @@
           </details>
           {% endif %}
         </td>
-        <td>{{ entry.branch_id|label:"BranchId" }}</td>
-        <td>{% record_url entry.record_kind entry.record_id as link %}{% if link %}<a class="record-id" href="{{ link }}">{{ entry.record_id }}</a>{% else %}<span class="record-id">{{ entry.record_id|default:"" }}</span>{% endif %}</td>
-        <td class="num"><span class="money">{{ entry.amount_centavos|peso }}</span></td>
+        <td data-label="Branch">{{ entry.branch_id|label:"BranchId" }}</td>
+        <td data-label="Record">{% record_url entry.record_kind entry.record_id as link %}{% if link %}<a class="record-id" href="{{ link }}">{{ entry.record_id }}</a>{% else %}<span class="record-id">{{ entry.record_id|default:"" }}</span>{% endif %}</td>
+        <td data-label="Amount" class="num"><span class="money">{{ entry.amount_centavos|peso }}</span></td>
       </tr>
     {% empty %}
       <tr><td colspan="7" class="muted">Nothing logged matches.</td></tr>
