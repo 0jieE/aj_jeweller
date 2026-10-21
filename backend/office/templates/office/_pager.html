@@ -1,9 +1,27 @@
-{% if page.paginator.num_pages > 1 %}
-<nav class="pager no-print">
-  {% if page.has_previous %}<a href="{% querystring page=page.previous_page_number %}">Newer</a>{% endif %}
-  <span>Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} in all</span>
-  {% if page.has_next %}<a href="{% querystring page=page.next_page_number %}">Older</a>{% endif %}
+{% load office %}
+{# The pager under a table. `page` is common.Pages. With `target` (a table's own container), moving between pages swaps only that table. #}
+<nav class="pager no-print" aria-label="Pages"{% if target %} hx-target="{{ target }}" hx-select="{{ target }}" hx-swap="outerHTML show:{{ target }}:top" hx-push-url="true"{% endif %}>
+  <p class="pager-count">
+    {% if page.count %}Showing <strong>{{ page.start }}–{{ page.end }}</strong> of <strong>{{ page.count }}</strong>{% else %}Nothing to show{% endif %}
+  </p>
+
+  {% if page.last > 1 %}
+  <div class="pager-pages">
+    {% with url=page.first_url %}{% if url %}<a class="pager-step" href="{{ url }}" aria-label="First page" title="First page">{% icon "first" %}</a>{% else %}<span class="pager-step is-off">{% icon "first" %}</span>{% endif %}{% endwith %}
+    {% with url=page.previous_url %}{% if url %}<a class="pager-step" href="{{ url }}" aria-label="Previous page" title="Previous page">{% icon "previous" %}</a>{% else %}<span class="pager-step is-off">{% icon "previous" %}</span>{% endif %}{% endwith %}
+    {% for link in page.links %}
+      {% if link.gap %}<span class="pager-gap">…</span>
+      {% elif link.current %}<span class="pager-number is-current" aria-current="page">{{ link.number }}</span>
+      {% else %}<a class="pager-number" href="{{ link.url }}">{{ link.number }}</a>{% endif %}
+    {% endfor %}
+    {% with url=page.next_url %}{% if url %}<a class="pager-step" href="{{ url }}" aria-label="Next page" title="Next page">{% icon "next" %}</a>{% else %}<span class="pager-step is-off">{% icon "next" %}</span>{% endif %}{% endwith %}
+    {% with url=page.last_url %}{% if url %}<a class="pager-step" href="{{ url }}" aria-label="Last page" title="Last page">{% icon "last" %}</a>{% else %}<span class="pager-step is-off">{% icon "last" %}</span>{% endif %}{% endwith %}
+  </div>
+  {% endif %}
+
+  {% with sizes=page.sizes %}{% if sizes %}
+  <p class="pager-sizes">Rows
+    {% for s in sizes %}{% if s.current %}<span class="is-current">{{ s.size }}</span>{% else %}<a href="{{ s.url }}">{{ s.size }}</a>{% endif %}{% endfor %}
+  </p>
+  {% endif %}{% endwith %}
 </nav>
-{% else %}
-<p class="muted small">{{ page.paginator.count }} in all</p>
-{% endif %}

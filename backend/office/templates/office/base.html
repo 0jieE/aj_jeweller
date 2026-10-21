@@ -1,5 +1,6 @@
 {% load static office %}<!doctype html>
-<html lang="en">
+{# nav-mini: the sidebar folded to icons. Remembered in a cookie so a reload doesn't flash it open. #}
+<html lang="en"{% if request.COOKIES.office_nav == "mini" %} class="nav-mini"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +9,7 @@
   {# htmx 2.0.4, vendored. Swap the friendly refusals (403, 404, 422) like any page. #}
   <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"40[34]","swap":true},{"code":"422","swap":true},{"code":"...","swap":false,"error":true}],"scrollIntoViewOnBoost":false}'>
   <script src="{% static 'administrator/htmx.min.js' %}" defer></script>
+  <script src="{% static 'administrator/office.js' %}" defer></script>
 </head>
 <body hx-boost="true" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   {% if user.is_authenticated and user.role == "superuser" %}
@@ -18,43 +20,48 @@
     <label for="nav-toggle" class="menu-button" aria-label="Open the menu">
       <span></span><span></span><span></span>
     </label>
-    <a class="brand" href="{% url 'office:today' %}">AJ Jeweler <span>office</span></a>
+    <a class="brand" href="{% url 'office:today' %}"><span class="brand-mark">AJ</span><span class="brand-text">Jeweler <span>office</span></span></a>
   </header>
   <label for="nav-toggle" class="scrim" aria-label="Close the menu"></label>
 
   <div class="shell">
     <nav class="sidebar" aria-label="Office">
-      <a class="brand" href="{% url 'office:today' %}">AJ Jeweler <span>office</span></a>
+      <div class="sidebar-head">
+        <a class="brand" href="{% url 'office:today' %}" data-tip="Today"><span class="brand-mark">AJ</span><span class="brand-text">Jeweler <span>office</span></span></a>
+        <button type="button" class="icon-button nav-collapse" data-nav-toggle
+                aria-pressed="{% if request.COOKIES.office_nav == 'mini' %}true{% else %}false{% endif %}"
+                aria-label="Fold the menu to icons" title="Fold or unfold the menu">{% icon "sidebar" %}</button>
+      </div>
 
       <div class="nav-group">
-        {% nav_link "office:today" "Today" %}
+        {% nav_link "office:today" "Today" "today" %}
       </div>
       <div class="nav-group">
         <p class="nav-title">Records</p>
-        {% nav_link "office:purchases" "Purchases" %}
-        {% nav_link "office:sales" "Sales" %}
-        {% nav_link "office:items" "Items" %}
-        {% nav_link "office:cash-entries" "Cash" %}
-        {% nav_link "office:customers" "Customers" %}
-        {% nav_link "office:commitments" "Loans" %}
-        {% nav_link "office:disposals" "Disposal" %}
+        {% nav_link "office:purchases" "Purchases" "purchases" %}
+        {% nav_link "office:sales" "Sales" "sales" %}
+        {% nav_link "office:items" "Items" "items" %}
+        {% nav_link "office:cash-entries" "Cash" "cash" %}
+        {% nav_link "office:customers" "Customers" "customers" %}
+        {% nav_link "office:commitments" "Loans" "loans" %}
+        {% nav_link "office:disposals" "Disposal" "disposal" %}
       </div>
       <div class="nav-group">
         <p class="nav-title">Reports</p>
-        {% nav_link "office:reports" "Reports" %}
-        {% nav_link "office:log" "Transaction log" %}
+        {% nav_link "office:reports" "Reports" "reports" %}
+        {% nav_link "office:log" "Transaction log" "log" %}
       </div>
       <div class="nav-group">
         <p class="nav-title">Shop</p>
-        {% nav_link "office:staff" "Staff" %}
-        {% nav_link "office:rates" "Rates" %}
+        {% nav_link "office:staff" "Staff" "staff" %}
+        {% nav_link "office:rates" "Rates" "rates" %}
       </div>
 
       <form class="who" method="post" action="{% url 'office:logout' %}">
         {% csrf_token %}
-        <span class="who-name">{{ user.name }}</span>
-        <span class="who-role">{{ user.role_label }}</span>
-        <button class="link-button" type="submit">Sign out</button>
+        <span class="avatar" title="{{ user.name }}">{{ user.name|initials }}</span>
+        <span class="who-text"><span class="who-name">{{ user.name }}</span><span class="who-role">{{ user.role_label }}</span></span>
+        <button class="icon-button" type="submit" aria-label="Sign out" data-tip="Sign out" title="Sign out">{% icon "sign-out" %}</button>
       </form>
     </nav>
   {% endif %}

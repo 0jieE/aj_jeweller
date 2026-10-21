@@ -45,7 +45,7 @@
 </section>
 
 <div class="grid grid--2">
-  <section class="card">
+  <section class="card" id="today-purchases">
     <h2>Purchases today <span class="money money--gold">{{ purchases_total|peso }}</span></h2>
     {% if purchases %}
     <table class="table">
@@ -62,10 +62,11 @@
       {% endfor %}
       </tbody>
     </table>
+    {% if purchases.last > 1 %}{% include "office/_pager.html" with page=purchases target="#today-purchases" %}{% endif %}
     {% else %}<p class="muted">No purchases yet today.</p>{% endif %}
   </section>
 
-  <section class="card">
+  <section class="card" id="today-sales">
     <h2>Sales today <span class="money money--gold">{{ sales_total|peso }}</span></h2>
     {% if sales %}
     <table class="table">
@@ -82,6 +83,7 @@
       {% endfor %}
       </tbody>
     </table>
+    {% if sales.last > 1 %}{% include "office/_pager.html" with page=sales target="#today-sales" %}{% endif %}
     {% else %}<p class="muted">No sales yet today.</p>{% endif %}
   </section>
 </div>

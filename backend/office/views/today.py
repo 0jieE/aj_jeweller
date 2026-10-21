@@ -10,9 +10,9 @@ from django.utils import timezone
 from shop.enums import BranchId, ItemStatus, VerificationStatus
 from shop.models import Branch, Commitment, Item, PurchaseBatch, Sale
 from shop.services import cash
-from shop.services.purchases import batch_total
 
-from .common import day_start
+from .common import day_start, paged
+from .records import tally, with_lines
 
 
 def _waiting(branches):
@@ -46,19 +46,20 @@ def today(request):
     start, end = day_start(day), day_start(day + timedelta(days=1))
     # In the app's order: Kidapawan, then Davao.
     branches = sorted(Branch.objects.all(), key=lambda b: BranchId.values.index(b.id))
-    purchases = list(PurchaseBatch.objects.filter(date__gte=start, date__lt=end).select_related("submitted_by"))
-    for batch in purchases:
-        batch.total = batch_total(batch)
-    sales = list(Sale.objects.filter(date__gte=start, date__lt=end).select_related("submitted_by")
-                 .prefetch_related("lines"))
+    purchases = with_lines(PurchaseBatch.objects.filter(date__gte=start, date__lt=end).order_by("-date", "-id"))
+    sales = Sale.objects.filter(date__gte=start, date__lt=end).prefetch_related("lines").order_by("-date", "-id")
+    # The day's totals cover every record; the tables show ten at a time.
+    purchase_page = paged(request, purchases, param="ppage", per=10, choices=())
+    sale_page = paged(request, sales, param="spage", per=10, choices=())
+    tally(purchase_page.rows)
     return render(request, "office/today.html", {
         "title": "The shop today",
         "day": day,
         "branches": [{"branch": b, "accounts": cash.balances(b, day).values()} for b in branches],
         "branch_names": [b.label for b in branches],
         "waiting": _waiting(branches),
-        "purchases": purchases,
-        "purchases_total": sum(b.total for b in purchases),
-        "sales": sales,
+        "purchases": purchase_page,
+        "purchases_total": sum(b.total for b in tally(list(purchases))),
+        "sales": sale_page,
         "sales_total": sum(s.total_centavos for s in sales),
     })

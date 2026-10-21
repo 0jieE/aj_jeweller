@@ -1,6 +1,6 @@
 {% load office %}
 {# The log entries about one record, as on its detail page. #}
-<section class="card">
+<section class="card" id="history">
   <h2>History</h2>
   {% if log %}
   <table class="table table--cards">
@@ -21,6 +21,7 @@
     {% endfor %}
     </tbody>
   </table>
+  {% if log.last > 1 %}{% include "office/_pager.html" with page=log target="#history" %}{% endif %}
   {% else %}
   <p class="muted">Nothing logged about this record.</p>
   {% endif %}

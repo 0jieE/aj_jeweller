@@ -13,11 +13,11 @@ from accounts.models import User
 
 from ..forms import NewStaffForm, PinForm, StaffForm
 from .auth import not_found
-from .common import attempt, ctx, history
+from .common import attempt, ctx, history, paged
 
 
 def staff(request):
-    people = User.objects.order_by("-active", "role", "name_key")
+    people = paged(request, User.objects.order_by("-active", "role", "name_key"), per=25)
     return render(request, "office/staff.html", {"title": "Staff", "people": people, "now": timezone.now()})
 
 
@@ -45,7 +45,7 @@ def _member_page(request, person, *, edit=None, pin=None, error=None, status=200
         "pin": pin or PinForm(),
         "delete_problem": accounts.delete_problem(ctx(request), person),
         "activity": accounts.activity_count(person.id),
-        "log": history(person.id),
+        "log": history(request, person.id),
         "error": error,
     }, status=status)
 

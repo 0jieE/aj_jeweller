@@ -30,10 +30,10 @@
       <h2>{{ report_title }}</h2>
       <p class="muted">{{ scope }} · {% if f.date_from or f.date_to %}{{ f.date_from|date:"M j, Y"|default:"the start" }} to {{ f.date_to|date:"M j, Y"|default:"today" }}{% else %}all dates{% endif %}</p>
     </div>
-    <p class="total">Total <span class="money money--gold">{{ table.total_centavos|peso }}</span> · {{ table.rows|length }} row{{ table.rows|length|pluralize }}</p>
+    <p class="total">Total <span class="money money--gold">{{ table.total_centavos|peso }}</span> · {{ preview.count }} row{{ preview.count|pluralize }}</p>
   </header>
   <div class="toolbar no-print">
-    {% for fmt in formats %}<a class="button button--quiet" hx-boost="false" href="{% url 'office:report-download' fmt %}{% querystring page=None %}">Download {{ fmt|upper }}</a>{% endfor %}
+    {% for fmt in formats %}<a class="button button--quiet" hx-boost="false" href="{% url 'office:report-download' fmt %}?{{ query }}">Download {{ fmt|upper }}</a>{% endfor %}
     <button class="button button--quiet" type="button" onclick="window.print()">Print</button>
   </div>
   <div class="scroll">
@@ -48,6 +48,6 @@
     </tbody>
   </table>
   </div>
-  {% if table.rows|length > preview|length %}<p class="muted small">The preview shows the first {{ preview|length }} rows. The download and the PDF hold all {{ table.rows|length }}.</p>{% endif %}
+  {% include "office/_pager.html" with page=preview target="#results" %}
 </section>
 {% endblock %}

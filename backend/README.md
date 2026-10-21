@@ -433,6 +433,16 @@ step:
   spacing and type. Money is gold, cash in green, cash out red, as in the app.
   If the app's theme changes, copy the file again.
 - **Printing** drops the navigation and filters and prints figures in black.
+- **Layout.** A sidebar on the left. Its button folds it to a rail of icons
+  (each named on hover), and a cookie remembers the choice. Below 960px wide
+  it becomes a drawer behind a menu button. On a phone, each table row turns
+  into a card of label and value pairs.
+- **Pagination.** Every table that can grow is paged. Lists show 50 rows
+  (25 or 100 on request), with numbered pages, and a page fetches only its own
+  rows: one `LIMIT` query and one `COUNT`. Moving between pages swaps only
+  that table. Lists are always ordered down to the id, so records sharing a
+  date never repeat or vanish across a page boundary. Reports open on the
+  current month rather than every record; clear both dates for all of them.
 
 The office is served by Django like the API. It resolves before the desktop
 app's catch-all, and any unknown address under `/administrator/` is the

@@ -22,6 +22,7 @@ from shop.models import TransactionLog
 from shop.services.base import Ctx
 
 PER_PAGE = 50
+PER_PAGE_CHOICES = (25, 50, 100)
 
 
 def ctx(request) -> Ctx:
@@ -96,13 +97,100 @@ def read_filters(request, *, statuses=(), types=()) -> Filters:
     )
 
 
-def paged(request, queryset):
-    return Paginator(queryset, PER_PAGE).get_page(request.GET.get("page"))
+class Pages:
+    """One page of a table, and everything its pager shows: which rows these
+    are, numbered links around the current page, and the rows-per-page choice.
+
+    Only the page's rows are fetched (a LIMIT/OFFSET query, plus one COUNT),
+    so a table loads as fast with ten thousand records as with ten. Iterating
+    it gives the rows; `.rows` is a list, so a view can annotate them.
+    """
+
+    WINDOW = 2  # page numbers shown either side of the current one
+
+    def __init__(self, request, items, *, param="page", per=PER_PAGE, choices=PER_PAGE_CHOICES):
+        self.request, self.param = request, param
+        self.per_param = f"{param}_size" if param != "page" else "per"
+        if choices:
+            asked = request.GET.get(self.per_param, "")
+            per = int(asked) if asked.isdigit() and int(asked) in choices else per
+        self.per, self.choices = per, choices
+        self.page = Paginator(items, per).get_page(request.GET.get(param))
+        self.rows = list(self.page.object_list)
+        self.paginator = self.page.paginator
+
+    def __iter__(self):
+        return iter(self.rows)
+
+    def __len__(self):
+        return len(self.rows)
+
+    @property
+    def count(self) -> int:
+        return self.paginator.count
+
+    @property
+    def start(self) -> int:
+        return self.page.start_index()
+
+    @property
+    def end(self) -> int:
+        return self.page.end_index()
+
+    @property
+    def number(self) -> int:
+        return self.page.number
+
+    @property
+    def last(self) -> int:
+        return self.paginator.num_pages
+
+    def url(self, number=None, *, per=None) -> str:
+        query = self.request.GET.copy()
+        if per is not None:
+            query[self.per_param] = per
+            query.pop(self.param, None)  # a new page size starts again at page one
+        elif number is not None:
+            query[self.param] = number
+        return f"{self.request.path}?{query.urlencode()}"
+
+    def links(self) -> list[dict]:
+        """1 … 4 5 [6] 7 8 … 20: the first, the last, and the current page's neighbours."""
+        shown = {1, self.last, *range(self.number - self.WINDOW, self.number + self.WINDOW + 1)}
+        out, previous = [], 0
+        for n in sorted(x for x in shown if 1 <= x <= self.last):
+            if n - previous > 1:
+                out.append({"gap": True})
+            out.append({"number": n, "url": self.url(n), "current": n == self.number})
+            previous = n
+        return out
+
+    def sizes(self) -> list[dict]:
+        if not self.choices or self.count <= min(self.choices):
+            return []
+        return [{"size": n, "url": self.url(per=n), "current": n == self.per} for n in self.choices]
+
+    def first_url(self):
+        return self.url(1) if self.number > 1 else None
+
+    def previous_url(self):
+        return self.url(self.number - 1) if self.page.has_previous() else None
+
+    def next_url(self):
+        return self.url(self.number + 1) if self.page.has_next() else None
+
+    def last_url(self):
+        return self.url(self.last) if self.number < self.last else None
 
 
-def history(*record_ids):
-    """The log entries about these records, newest first."""
-    return TransactionLog.objects.filter(record_id__in=[r for r in record_ids if r]).select_related("branch")
+def paged(request, items, **options) -> Pages:
+    return Pages(request, items, **options)
+
+
+def history(request, *record_ids) -> Pages:
+    """The log entries about these records, newest first, a page at a time."""
+    entries = TransactionLog.objects.filter(record_id__in=[r for r in record_ids if r]).select_related("branch")
+    return paged(request, entries, param="hpage", per=20, choices=())
 
 
 def page_context(**extra) -> dict:

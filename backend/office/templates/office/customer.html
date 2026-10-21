@@ -20,7 +20,7 @@
   </section>
 </div>
 
-<section class="card">
+<section class="card" id="sold-to-shop">
   <h2>Sold to the shop</h2>
   <table class="table table--cards">
     <thead><tr><th>Date</th><th>Purchase</th><th>Branch</th><th class="num">Amount</th><th>Status</th></tr></thead>
@@ -36,9 +36,10 @@
     {% empty %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
     </tbody>
   </table>
+  {% if purchases.last > 1 %}{% include "office/_pager.html" with page=purchases target="#sold-to-shop" %}{% endif %}
 </section>
 
-<section class="card">
+<section class="card" id="bought-from-shop">
   <h2>Bought from the shop</h2>
   <table class="table table--cards">
     <thead><tr><th>Date</th><th>Sale</th><th>Branch</th><th class="num">Total</th><th>Status</th></tr></thead>
@@ -54,6 +55,7 @@
     {% empty %}<tr><td colspan="5" class="muted">None.</td></tr>{% endfor %}
     </tbody>
   </table>
+  {% if sales.last > 1 %}{% include "office/_pager.html" with page=sales target="#bought-from-shop" %}{% endif %}
 </section>
 
 {% include "office/_history.html" %}

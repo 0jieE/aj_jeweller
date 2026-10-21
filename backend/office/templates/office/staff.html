@@ -6,7 +6,7 @@
   <div class="toolbar"><a class="button" href="{% url 'office:staff-new' %}">Add staff</a></div>
 </header>
 
-<section class="card">
+<section class="card" id="results">
   <table class="table table--cards">
     <thead><tr><th>Name</th><th>Role</th><th>Branch</th><th>Contact</th><th>PIN</th><th>Status</th><th>User id</th></tr></thead>
     <tbody>
@@ -23,5 +23,6 @@
     {% endfor %}
     </tbody>
   </table>
+  {% include "office/_pager.html" with page=people target="#results" %}
 </section>
 {% endblock %}

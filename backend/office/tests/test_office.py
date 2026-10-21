@@ -373,3 +373,64 @@ class EveryPageOpensTests(OfficeTestCase):
             self.assertEqual(response.status_code, 200, fmt)
             self.assertIn(mime, response["Content-Type"])
             self.assertIn("aj-jeweler_sales_all-branches_2020-01-01_to_2030-12-31", response["Content-Disposition"])
+
+
+class PagesAndLayoutTests(OfficeTestCase):
+    def record_entries(self, count):
+        from shop.admin_tools import run
+        from shop.services import cash
+        from shop.services.base import Ctx
+
+        sam = User.objects.get(pk=SAM)
+        for n in range(count):
+            run(lambda n=n: cash.record_entry(Ctx.for_user(sam), branch_id="davao", type="cashIn", account="sales",
+                                              amount_centavos=100 + n, note=f"Float {n}"))
+
+    def test_a_long_table_comes_a_page_at_a_time_without_repeats(self):
+        self.record_entries(30)
+        first = self.office.get(reverse("office:cash-entries"), {"per": 25})
+        self.assertContains(first, "Showing <strong>1–25</strong> of <strong>30</strong>", html=False)
+        self.assertEqual(len(first.context["page"]), 25)
+        second = self.office.get(reverse("office:cash-entries"), {"per": 25, "page": 2})
+        self.assertEqual(len(second.context["page"]), 5)
+        ids = [e.id for e in first.context["page"]] + [e.id for e in second.context["page"]]
+        self.assertEqual(len(set(ids)), 30, "every entry once, none twice")
+        self.assertContains(first, "page=2")
+        self.assertEqual(len(self.office.get(reverse("office:cash-entries"), {"per": 999}).context["page"]), 30,
+                         "an unknown size falls back to 50 a page")
+
+    def test_the_sidebar_folds_to_icons_and_stays_folded(self):
+        open_ = self.office.get(reverse("office:today"))
+        self.assertNotContains(open_, 'class="nav-mini"')
+        self.assertContains(open_, 'data-nav-toggle')
+        self.assertContains(open_, '<span class="nav-label">Purchases</span>', html=False)
+        self.office.cookies["office_nav"] = "mini"
+        folded = self.office.get(reverse("office:items"))
+        self.assertContains(folded, '<html lang="en" class="nav-mini">', html=False)
+        self.assertContains(folded, 'aria-pressed="true"')
+
+    def test_reports_open_on_this_month_and_download_what_was_previewed(self):
+        from django.utils import timezone
+
+        today = timezone.localdate()
+        page = self.office.get(reverse("office:reports"))
+        self.assertEqual((page.context["f"].date_from, page.context["f"].date_to), (today.replace(day=1), today))
+        self.assertContains(page, f"from={today.replace(day=1).isoformat()}")
+        everything = self.office.get(reverse("office:reports"), {"kind": "sales", "from": "", "to": ""})
+        self.assertIsNone(everything.context["f"].date_from)
+
+
+class LoanStatusFilterTests(OfficeTestCase):
+    def setUp(self):
+        super().setUp()
+        self.post(ARNEL, "/sync/import", json.loads(FIXTURE.read_text(encoding="utf-8")), expect=200)
+
+    def test_the_database_status_filter_agrees_with_the_ledger(self):
+        from shop.services.commitments import ledger
+
+        for status in ("loanPending", "loanReceived", "loanPaid"):
+            listed = {row.commitment.id for row in
+                      self.office.get(reverse("office:commitments"), {"status": status}).context["page"]}
+            expected = {c.id for c in Commitment.objects.all() if ledger(c).status == status}
+            self.assertEqual(listed, expected, status)
+            self.assertTrue(expected, f"the demo data has a {status} loan")

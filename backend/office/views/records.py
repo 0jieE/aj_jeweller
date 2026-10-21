@@ -1,7 +1,8 @@
 """The records, read-only: a filterable table and a detail page for each kind.
 The filters are the app's: branch, date range, status, type, search."""
 
-from django.db.models import Q
+from django.db.models import Case, F, Prefetch, Q, Sum, Value, When
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 
 from shop.enums import CashAccount, CashEntryType, CommitmentStatus, ItemStatus, ItemType, VerificationStatus
@@ -24,16 +25,34 @@ def _search(queryset, q, *fields):
 
 # --- purchases -----------------------------------------------------------------
 
+def with_lines(batches):
+    """Purchases with their lines fetched in one extra query for the whole page,
+    rather than two per row. The lines are lines_of(): the pieces handed over,
+    not partitions drawn later."""
+    pieces = Item.objects.filter(parent_lot__isnull=True).order_by("line_no", "id")
+    return batches.prefetch_related(Prefetch("items", queryset=pieces, to_attr="visit_lines"))
+
+
+def tally(batches):
+    """Each purchase's total and piece count, from its prefetched lines — the
+    same sum as purchases.batch_total."""
+    for batch in batches:
+        batch.total = sum(item.effective_original_amount for item in batch.visit_lines)
+        batch.line_count = len(batch.visit_lines)
+    return batches
+
+
 def purchases(request):
     f = read_filters(request, statuses=VerificationStatus.values)
-    queryset = PurchaseBatch.objects.select_related("submitted_by", "released_by")
+    # Every list ends its ordering on the id, so a page boundary never splits
+    # records that share a date (one would show twice and another never).
+    queryset = with_lines(PurchaseBatch.objects.select_related("submitted_by", "released_by")
+                          .order_by("-date", "-id"))
     queryset = _search(f.dated(f.branched(queryset), "date"), f.q, "customer_name", "customer_contact_number")
     if f.status:
         queryset = queryset.filter(verification_status=f.status)
     page = paged(request, queryset)
-    for batch in page:
-        batch.total = batch_total(batch)
-        batch.line_count = len(lines_of(batch))
+    tally(page.rows)
     return render(request, "office/purchases.html", page_context(
         title="Purchases", f=f, page=page, status_choices=VerificationStatus.choices))
 
@@ -46,7 +65,7 @@ def purchase(request, pk):
     return render(request, "office/purchase.html", {
         "title": f"Purchase {batch.id}", "batch": batch, "lines": lines, "total": batch_total(batch),
         "receipt": StoredReceipt.objects.filter(record_id=batch.id).first(),
-        "log": history(batch.id, *[item.id for item in lines]),
+        "log": history(request, batch.id, *[item.id for item in lines]),
     })
 
 
@@ -54,7 +73,8 @@ def purchase(request, pk):
 
 def sales(request):
     f = read_filters(request, statuses=VerificationStatus.values)
-    queryset = Sale.objects.select_related("submitted_by", "received_by").prefetch_related("lines")
+    queryset = (Sale.objects.select_related("submitted_by", "received_by").prefetch_related("lines")
+                .order_by("-date", "-id"))
     queryset = _search(f.dated(f.branched(queryset), "date"), f.q, "customer_name", "customer_contact_number")
     if f.status:
         queryset = queryset.filter(verification_status=f.status)
@@ -70,7 +90,7 @@ def sale(request, pk):
     return render(request, "office/sale.html", {
         "title": f"Sale {order.id}", "sale": order, "lines": lines, "total": sum(l.negotiated_price_centavos for l in lines),
         "receipt": StoredReceipt.objects.filter(record_id=order.id).first(),
-        "log": history(order.id),
+        "log": history(request, order.id),
     })
 
 
@@ -97,7 +117,7 @@ def item(request, pk):
         "partitions": piece.partitions.order_by("id"),
         "sale_lines": piece.sale_lines.select_related("sale"),
         "disposals": piece.disposals.all(),
-        "log": history(piece.id),
+        "log": history(request, piece.id),
     })
 
 
@@ -124,7 +144,7 @@ def cash_entry(request, pk):
         return not_found(request)
     return render(request, "office/cash_entry.html", {
         "title": f"Cash entry {entry.id}", "entry": entry, "group": cash.group_of(entry),
-        "lock": cash.lock_reason(entry), "log": history(*[e.id for e in cash.group_of(entry)]),
+        "lock": cash.lock_reason(entry), "log": history(request, *[e.id for e in cash.group_of(entry)]),
     })
 
 
@@ -132,7 +152,8 @@ def cash_entry(request, pk):
 
 def customers(request):
     f = read_filters(request)
-    queryset = _search(f.dated(Customer.objects.all(), "first_seen"), f.q, "name", "contact_number", "address")
+    queryset = _search(f.dated(Customer.objects.order_by("name_key", "id"), "first_seen"), f.q, "name",
+                       "contact_number", "address")
     return render(request, "office/customers.html", page_context(
         title="Customers", f=f, page=paged(request, queryset)))
 
@@ -141,13 +162,14 @@ def customer(request, pk):
     person = Customer.objects.filter(pk=pk).first()
     if person is None:
         return not_found(request)
-    bought = list(PurchaseBatch.objects.filter(customer=person))
-    for batch in bought:
-        batch.total = batch_total(batch)
+    bought = with_lines(PurchaseBatch.objects.filter(customer=person).order_by("-date", "-id"))
+    bought = paged(request, bought, param="ppage", per=20, choices=())
+    tally(bought.rows)
+    sold = Sale.objects.filter(customer=person).prefetch_related("lines").order_by("-date", "-id")
     return render(request, "office/customer.html", {
         "title": person.name, "customer": person, "purchases": bought,
-        "sales": Sale.objects.filter(customer=person).prefetch_related("lines"),
-        "log": history(person.id),
+        "sales": paged(request, sold, param="spage", per=20, choices=()),
+        "log": history(request, person.id),
     })
 
 
@@ -155,15 +177,26 @@ def customer(request, pk):
 
 def commitments_list(request):
     f = read_filters(request, statuses=CommitmentStatus.values)
-    queryset = Commitment.objects.select_related("branch")
+    queryset = Commitment.objects.select_related("branch").annotate(
+        repaid=Coalesce(Sum("disposals__gross_amount_centavos"), Value(0)),
+        # The same three states as commitments.Ledger.status, worked out by the
+        # database so a status filter never loads every loan.
+        state=Case(
+            When(date_received__isnull=True, then=Value(CommitmentStatus.LOAN_PENDING.value)),
+            When(repaid__gte=F("amount_centavos"), then=Value(CommitmentStatus.LOAN_PAID.value)),
+            default=Value(CommitmentStatus.LOAN_RECEIVED.value),
+        ),
+    )
     if request.GET.get("branch") == "none":
         queryset = queryset.filter(branch__isnull=True)
     queryset = _search(f.dated(f.branched(queryset), "date_approved"), f.q, "lender")
-    rows = [commitments.ledger(c) for c in queryset]
     if f.status:
-        rows = [row for row in rows if row.status == f.status]
+        queryset = queryset.filter(state=f.status)
+    queryset = queryset.order_by("-date_approved", "-id")  # grouping drops the model's own ordering
+    page = paged(request, queryset)
+    page.rows = [commitments.Ledger(commitment=c, repaid_centavos=c.repaid) for c in page.rows]
     return render(request, "office/commitments.html", page_context(
-        title="Commitments", f=f, page=paged(request, rows), status_choices=CommitmentStatus.choices,
+        title="Commitments", f=f, page=page, status_choices=CommitmentStatus.choices,
         company_wide=request.GET.get("branch") == "none"))
 
 
@@ -173,14 +206,14 @@ def commitment(request, pk):
         return not_found(request)
     return render(request, "office/commitment.html", {
         "title": f"Commitment {loan.id}", "loan": commitments.ledger(loan), "figures": commitments.ledger(loan).as_dict(),
-        "disposals": loan.disposals.order_by("date"), "log": history(loan.id),
+        "disposals": loan.disposals.order_by("date"), "log": history(request, loan.id),
     })
 
 
 def disposals(request):
     f = read_filters(request)
-    queryset = _search(f.dated(f.branched(DisposalBatch.objects.select_related("commitment")), "date"), f.q,
-                       "commitment__lender")
+    batches = DisposalBatch.objects.select_related("commitment").order_by("-date", "-id")
+    queryset = _search(f.dated(f.branched(batches), "date"), f.q, "commitment__lender")
     return render(request, "office/disposals.html", page_context(
         title="Disposal batches", f=f, page=paged(request, queryset)))
 
@@ -191,5 +224,5 @@ def disposal_batch(request, pk):
         return not_found(request)
     return render(request, "office/disposal.html", {
         "title": f"Disposal {batch.id}", "batch": batch, "pieces": batch.ordered_items(),
-        "breakdown": disposal.karat_breakdown(batch), "log": history(batch.id),
+        "breakdown": disposal.karat_breakdown(batch), "log": history(request, batch.id),
     })

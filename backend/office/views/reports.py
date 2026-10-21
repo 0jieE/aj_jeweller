@@ -1,8 +1,11 @@
 """Reports: the exports the app already offers (shop/services/exports.py) with a
 date range and a preview, and the transaction log."""
 
+from urllib.parse import urlencode
+
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from accounts.models import User
 from shop.enums import LogAction, LogCategory, LogRecordKind
@@ -11,7 +14,7 @@ from shop.services import exports
 
 from .common import page_context, paged, read_filters
 
-PREVIEW_ROWS = 100
+PREVIEW_ROWS = 50
 FORMATS = {
     "csv": "text/csv; charset=utf-8",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -23,13 +26,26 @@ def _report(request):
     kind = request.GET.get("kind")
     kind = kind if kind in exports.KINDS else exports.KINDS[0]
     f = read_filters(request)
+    if "from" not in request.GET and "to" not in request.GET:
+        # Opened fresh: this month so far, not every record the shop has. Clearing
+        # both dates (the fields sent empty) still asks for all dates.
+        today = timezone.localdate()
+        f.date_from, f.date_to = today.replace(day=1), today
     return kind, f, exports.build(kind, f.branch, f.start, f.end)
+
+
+def _query(kind, f) -> str:
+    """The report's own query, with the dates actually used, for its downloads."""
+    return urlencode({"kind": kind, "branch": f.branch or "",
+                      "from": f.date_from.isoformat() if f.date_from else "",
+                      "to": f.date_to.isoformat() if f.date_to else ""})
 
 
 def reports(request):
     kind, f, table = _report(request)
     return render(request, "office/reports.html", page_context(
-        title="Reports", kind=kind, f=f, table=table, preview=table.rows[:PREVIEW_ROWS],
+        title="Reports", kind=kind, f=f, table=table, query=_query(kind, f),
+        preview=paged(request, table.rows, per=PREVIEW_ROWS),
         kinds=[(k, exports.TITLES[k]) for k in exports.KINDS], formats=FORMATS,
         report_title=exports.TITLES[kind],
         scope="Both branches" if f.branch is None else f.branch.capitalize()))
