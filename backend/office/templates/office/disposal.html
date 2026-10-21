@@ -1,8 +1,8 @@
 {% extends "office/base.html" %}
 {% load office %}
+{% block crumbs %}<a href="{% url 'office:disposals' %}">Disposal batches</a>{% endblock %}
 {% block content %}
 <header class="page-head">
-  <p class="crumbs no-print"><a href="{% url 'office:disposals' %}">Disposal batches</a></p>
   <h1>Disposal <span class="record-id">{{ batch.id }}</span></h1>
 </header>
 

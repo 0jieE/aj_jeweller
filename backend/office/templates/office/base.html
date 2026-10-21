@@ -16,12 +16,6 @@
   {# On narrow screens the sidebar is a drawer; this checkbox opens it, with no script. #}
   <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
 
-  <header class="mobilebar">
-    <label for="nav-toggle" class="menu-button" aria-label="Open the menu">
-      <span></span><span></span><span></span>
-    </label>
-    <a class="brand" href="{% url 'office:today' %}"><span class="brand-mark">AJ</span><span class="brand-text">Jeweler <span>office</span></span></a>
-  </header>
   <label for="nav-toggle" class="scrim" aria-label="Close the menu"></label>
 
   <div class="shell">
@@ -64,6 +58,21 @@
         <button class="icon-button" type="submit" aria-label="Sign out" data-tip="Sign out" title="Sign out">{% icon "sign-out" %}</button>
       </form>
     </nav>
+
+    <div class="content">
+      {# The top bar: where this page sits, as links back up the trail. A record #}
+      {# page fills the crumbs block with its list; the page's own title ends it. #}
+      <header class="topbar">
+        <label for="nav-toggle" class="menu-button" aria-label="Open the menu">
+          <span></span><span></span><span></span>
+        </label>
+        <nav class="trail" aria-label="Where you are">
+          <a class="trail-home" href="{% url 'office:today' %}" title="Today">{% icon "today" %}<span class="nav-label">Today</span></a>
+          {% block crumbs %}{% endblock %}
+          <span class="trail-here" aria-current="page">{{ title }}</span>
+        </nav>
+        <span class="topbar-day">{% now "D, M j, Y" %}</span>
+      </header>
   {% endif %}
 
     <main class="page">
@@ -72,6 +81,7 @@
     </main>
 
   {% if user.is_authenticated and user.role == "superuser" %}
+    </div>
   </div>
   {% endif %}
 </body>

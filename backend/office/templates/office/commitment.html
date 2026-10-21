@@ -1,9 +1,9 @@
 {% extends "office/base.html" %}
 {% load office %}
+{% block crumbs %}<a href="{% url 'office:commitments' %}">Commitments</a>{% endblock %}
 {% block content %}
 {% with c=loan.commitment %}
 <header class="page-head">
-  <p class="crumbs no-print"><a href="{% url 'office:commitments' %}">Commitments</a></p>
   <h1>{{ c.lender }} <span class="record-id muted">{{ c.id }}</span> {% include "office/_loan_status.html" with status=loan.status %}</h1>
   {% if not c.date_received %}
   <div class="toolbar"><a class="button" href="{% url 'office:commitment-receive' c.id %}">Record the cash received</a></div>

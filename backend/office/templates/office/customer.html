@@ -1,8 +1,8 @@
 {% extends "office/base.html" %}
 {% load office %}
+{% block crumbs %}<a href="{% url 'office:customers' %}">Customers</a>{% endblock %}
 {% block content %}
 <header class="page-head">
-  <p class="crumbs no-print"><a href="{% url 'office:customers' %}">Customers</a></p>
   <h1>{{ customer.name }}</h1>
 </header>
 

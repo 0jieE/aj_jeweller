@@ -434,3 +434,15 @@ class LoanStatusFilterTests(OfficeTestCase):
             expected = {c.id for c in Commitment.objects.all() if ledger(c).status == status}
             self.assertEqual(listed, expected, status)
             self.assertTrue(expected, f"the demo data has a {status} loan")
+
+
+class TopBarTests(OfficeTestCase):
+    def test_a_record_page_links_back_up_its_trail(self):
+        item = self.released_item()
+        page = self.office.get(reverse("office:item", args=[item["id"]]))
+        self.assertContains(page, '<nav class="trail"', html=False)
+        self.assertContains(page, f'<a href="{reverse("office:items")}">Items</a>', html=False)
+        self.assertContains(page, f'<span class="trail-here" aria-current="page">Item {item["id"]}</span>', html=False)
+        correct = self.office.get(reverse("office:item-correct", args=[item["id"]]))
+        self.assertContains(correct, f'<a href="{reverse("office:item", args=[item["id"]])}">Item {item["id"]}</a>',
+                            html=False)

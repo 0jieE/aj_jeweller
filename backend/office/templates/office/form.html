@@ -1,4 +1,5 @@
 {% extends "office/base.html" %}
+{% block crumbs %}{% if back_url %}<a href="{% url back back_url %}">{{ back_label }}</a>{% else %}<a href="{% url back %}">{{ back_label }}</a>{% endif %}{% endblock %}
 {% block content %}
 <section class="card form-card">
   <h1>{{ title }}</h1>

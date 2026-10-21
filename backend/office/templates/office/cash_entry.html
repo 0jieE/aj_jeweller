@@ -1,8 +1,8 @@
 {% extends "office/base.html" %}
 {% load office %}
+{% block crumbs %}<a href="{% url 'office:cash-entries' %}">Cash entries</a>{% endblock %}
 {% block content %}
 <header class="page-head">
-  <p class="crumbs no-print"><a href="{% url 'office:cash-entries' %}">Cash entries</a></p>
   <h1>{{ entry.get_type_display }} <span class="record-id muted">{{ entry.id }}</span></h1>
   <div class="toolbar">
     {% if lock %}<span class="muted small">{{ lock }}</span>

@@ -53,7 +53,7 @@ def cash_new(request):
             messages.success(request, f"Recorded {CashEntryType(entry.type).label.lower()} of {peso(entry.amount_centavos)}.")
             return redirect("office:cash-entry", entry.id)
     return _form(request, "office/form.html", {"title": "Record a cash entry", "form": form,
-                                               "back": "office:cash-entries"}, error)
+                                               "back": "office:cash-entries", "back_label": "Cash entries"}, error)
 
 
 def cash_transfer(request):
@@ -68,7 +68,7 @@ def cash_transfer(request):
             messages.success(request, f"Moved {peso(pair[0].amount_centavos)}.")
             return redirect("office:cash-entry", pair[0].id)
     return _form(request, "office/form.html", {"title": "Move cash", "form": form,
-                                               "back": "office:cash-entries"}, error)
+                                               "back": "office:cash-entries", "back_label": "Cash entries"}, error)
 
 
 def _editable_entry(request, pk):
@@ -100,7 +100,8 @@ def cash_edit(request, pk):
             messages.success(request, "Corrected." if changes else "Nothing was changed.")
             return redirect("office:cash-entry", first.id)
     return _form(request, "office/form.html", {"title": f"Correct cash entry {first.id}", "form": form,
-                                               "back_url": first.id, "back": "office:cash-entry"}, error)
+                                               "back_url": first.id, "back": "office:cash-entry",
+                                               "back_label": f"Cash entry {first.id}"}, error)
 
 
 def cash_delete(request, pk):
@@ -137,7 +138,7 @@ def item_correct(request, pk):
                              + (f" {cash_note}" if cash_note else ""))
             return redirect("office:item", piece.id)
     return _form(request, "office/form.html", {
-        "title": f"Correct {piece.description}", "form": form, "back": "office:item", "back_url": piece.id,
+        "title": f"Correct {piece.description}", "form": form, "back": "office:item", "back_url": piece.id, "back_label": f"Item {piece.id}",
         "note": "A correction changes the record, never the cash ledger. Sold, disposed and reserved pieces "
                 "are corrected on the sale or batch instead.",
     }, error)
@@ -157,7 +158,7 @@ def commitment_new(request):
             messages.success(request, f"Added a {peso(loan.amount_centavos)} commitment with {loan.lender}.")
             return redirect("office:commitment", loan.id)
     return _form(request, "office/form.html", {"title": "Add a commitment", "form": form,
-                                               "back": "office:commitments"}, error)
+                                               "back": "office:commitments", "back_label": "Commitments"}, error)
 
 
 def commitment_receive(request, pk):
@@ -175,7 +176,7 @@ def commitment_receive(request, pk):
             return redirect("office:commitment", loan.id)
     return _form(request, "office/form.html", {
         "title": f"Cash received for {loan.lender}", "form": form, "multipart": True,
-        "back": "office:commitment", "back_url": loan.id,
+        "back": "office:commitment", "back_url": loan.id, "back_label": f"Commitment {loan.id}",
         "note": ("A branch loan credits that branch's Purchase Cash." if loan.branch_id
                  else "A company-wide loan credits no single branch."),
     }, error)

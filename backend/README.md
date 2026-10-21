@@ -433,7 +433,8 @@ step:
   spacing and type. Money is gold, cash in green, cash out red, as in the app.
   If the app's theme changes, copy the file again.
 - **Printing** drops the navigation and filters and prints figures in black.
-- **Layout.** A sidebar on the left. Its button folds it to a rail of icons
+- **Layout.** A top bar shows where the page sits (Today › Purchases ›
+  Purchase A3T8QD), each step a link back. A sidebar on the left; its button folds it to a rail of icons
   (each named on hover), and a cookie remembers the choice. Below 960px wide
   it becomes a drawer behind a menu button. On a phone, each table row turns
   into a card of label and value pairs.
